@@ -1,2 +1,29 @@
-# cusql
-Simple RDBMS for ECE464
+# cudb
+
+Simple MongoDB-like DBMS (rename pending)
+
+ECE464 Final project by Jonathan Lam, Derek Lee, Victor Zhang
+
+---
+
+# Functional design
+TODO: which features are supported
+
+### API
+TODO: how to interface with this system
+
+---
+
+# Architectural design
+TODO: physical storage, block diagram
+
+---
+
+# Build instructions
+`cargo` is required to build this project.
+
+```bash
+$ cargo build   # build project
+$ cargo run     # build and run project
+$ cargo clean   # delete build artifacts
+```
