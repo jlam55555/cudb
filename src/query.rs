@@ -7,7 +7,6 @@ pub enum FieldPath {
 }
 
 pub enum ResultOrder {
-    Unordered,
     Asc(FieldPath),
     Desc(FieldPath),
 }
@@ -42,7 +41,7 @@ pub enum Projection {
 pub struct Query {
     constraints: ConstraintDocument,
     projection: ProjectionDocument,
-    order: ResultOrder,
+    order: Option<Vec<ResultOrder>>,
 }
 
 // TODO
