@@ -1,6 +1,7 @@
 mod crud;
 mod db;
 mod document;
+mod index;
 mod query;
 mod value;
 

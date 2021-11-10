@@ -1,3 +1,5 @@
+use crate::index::*;
+
 pub struct Client {}
 
 pub struct Database {}
@@ -17,4 +19,9 @@ impl Database {
 
 impl Collection {
     // aggregate/lookup ... ?
+
+    pub fn create_index(ind: Index) {}
+    pub fn get_indices() -> Vec<Index> {
+        Vec::new()
+    }
 }
