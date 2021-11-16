@@ -2,6 +2,7 @@ mod crud;
 mod db;
 mod document;
 mod index;
+mod mmapv1;
 mod query;
 mod value;
 
