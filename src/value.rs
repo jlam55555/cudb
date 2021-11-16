@@ -1,6 +1,7 @@
 use crate::document::*;
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Value {
     Id(String),
     Int32(i32),

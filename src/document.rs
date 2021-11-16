@@ -1,9 +1,11 @@
 use crate::value::*;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 // (Data) document (as opposed to query document, etc.)
 // Note that `_id` is implemented as a regular field in the `elems`.
-#[derive(Debug)]
+// TODO: implement custom serialize/deserialize
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Document {
     elems: HashMap<String, Value>, // Hashmap of elements
 }

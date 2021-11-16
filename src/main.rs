@@ -6,11 +6,12 @@ mod mmapv1;
 mod query;
 mod value;
 
+use document::*;
 use value::*;
 
 fn main() {
     // Create a new mutable document
-    let mut d = document::Document::new();
+    let mut d = Document::new();
 
     // Insert some values into the document
     d.insert(
@@ -19,5 +20,12 @@ fn main() {
     );
 
     // Print the document using the default debug trait
-    println!("d = {:?}", d)
+    println!("d = {:?}", d);
+
+    // bincode serialization
+    let encoded = bincode::serialize(&d).unwrap();
+    println!("encoded = {:?}", encoded);
+
+    let decoded: Document = bincode::deserialize(&encoded[..]).unwrap();
+    println!("decoded = {:?}", decoded);
 }
