@@ -41,24 +41,30 @@ pub struct Pool {
 impl Pool {
     // Fetch a top level document from a block address.
     pub fn fetch(seg: block::Segment) -> TopLevelDocument {
-        TopLevelDocument {
-            blk: block::Segment::Unalloc,
-            doc: Document::new(),
-        }
+        // TopLevelDocument {
+        //     blk: block::Segment::Unalloc,
+        //     doc: Document::new(),
+        // }
+
+        unimplemented!("fetch")
     }
 
     // Update document, return new document.
     // Note that this may require resizing, which will
     //   update the document
     pub fn write(tldoc: TopLevelDocument) -> TopLevelDocument {
-        tldoc
+        // tldoc
+
+        unimplemented!("write")
     }
 
     // Write a new document, and return the TopLevelDocument.
     pub fn write_new_doc(doc: Document) -> TopLevelDocument {
-        TopLevelDocument {
-            blk: block::Segment::Unalloc,
-            doc: doc,
-        }
+        // TopLevelDocument {
+        //     blk: block::Segment::Unalloc,
+        //     doc: doc,
+        // }
+
+        unimplemented!("write_new_doc")
     }
 }
