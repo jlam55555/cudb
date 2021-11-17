@@ -51,6 +51,8 @@ pub mod tests {
             panic!("pool was not created");
         }
 
+        println!("{}", p);
+
         // drop pool
         p.drop();
 
@@ -97,6 +99,8 @@ pub mod tests {
         println!("Pool after insert: {:#?}", p);
         println!("TopLevelDocument: {:#?}", tldoc);
 
+        println!("{}", p);
+
         p.drop();
     }
 
@@ -110,6 +114,8 @@ pub mod tests {
             let tldoc = p.write_new(doc.clone());
             println!("Inserting document: {:#?}", tldoc);
         }
+
+        println!("{}", p);
 
         println!("Pool after multiple insert: {:#?}", p);
         p.drop();
@@ -134,6 +140,8 @@ pub mod tests {
         println!("Pool after re-opening: {:#?}", p);
         let post_size = p.get_size();
 
+        println!("{}", p);
+
         p.drop();
 
         assert_eq!(prev_size, post_size);
@@ -155,6 +163,8 @@ pub mod tests {
         for (doc, block) in docs.iter().zip(blocks.iter()) {
             assert_eq!(p.fetch(block).get_doc(), doc);
         }
+
+        println!("{}", p);
 
         p.drop();
     }
@@ -180,6 +190,8 @@ pub mod tests {
                 .map(|tldoc| tldoc.get_doc().clone())
                 .collect::<Vec<Document>>()
         );
+
+        println!("{}", p);
 
         p.drop();
     }
@@ -231,6 +243,8 @@ pub mod tests {
         p.delete(blocks[4]);
         assert_eq!(p.scan().len(), 2);
 
+        println!("{}", p);
+
         p.drop();
     }
 
@@ -268,6 +282,8 @@ pub mod tests {
 
         // Make sure we still see four elements
         assert_eq!(p.scan().len(), 4);
+
+        println!("{}", p);
 
         p.drop();
     }

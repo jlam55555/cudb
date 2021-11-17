@@ -9,6 +9,7 @@
 
 use crate::document::*;
 use byteorder::{ByteOrder, LittleEndian};
+use std::fmt;
 use std::os::unix::fs::FileExt;
 use std::path::{Path, PathBuf};
 use std::{
@@ -82,7 +83,8 @@ pub mod block {
 
 #[derive(Debug)]
 pub struct Pool {
-    free_blocks: Vec<Vec<block::Offset>>,
+    // TODO: implement a better allocation scheme
+    // free_blocks: Vec<Vec<block::Offset>>,
     top: block::Offset,
     file: File,
     path: PathBuf,
@@ -101,7 +103,6 @@ impl Pool {
 
         // TODO: implement free_blocks and better allocation scheme
         Pool {
-            free_blocks: Vec::new(),
             top: file.metadata().unwrap().len(),
             file: file,
             path: PathBuf::from(&path),
@@ -132,7 +133,7 @@ impl Pool {
     // - Highest-order bit: set if the block is deleted
     // - Low-order 31 bits: data size in bytes
     // TODO: validate header value
-    fn fetch_block_header(&mut self, off: block::Offset) -> block::Block {
+    fn fetch_block_header(&self, off: block::Offset) -> block::Block {
         let mut buf = [0u8; 4];
         self.file.read_exact_at(&mut buf, off).unwrap();
 
@@ -261,5 +262,37 @@ impl Pool {
         }
 
         tldocs
+    }
+}
+
+// Allow pretty-printing of pool.
+impl fmt::Display for Pool {
+    // Prints a pool with all of its allocated blocks, for debugging purposes.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(
+            f,
+            "Storage pool @{} ({} bytes) {{",
+            self.path.display().to_string(),
+            self.top
+        )
+        .unwrap();
+
+        // Perform a scan over blocks, print them all (including deleted ones).
+        let mut cur_pos: block::Offset = 0;
+        while cur_pos < self.top {
+            let block = self.fetch_block_header(cur_pos);
+            writeln!(
+                f,
+                "\toffset: {}\tlength: {}\tcapacity: {}{}",
+                block.off,
+                block.len,
+                block::alloc_size(block.len),
+                if block.del { "\t(DELETED)" } else { "" },
+            )
+            .unwrap();
+            cur_pos += block::alloc_size(block.len) as u64;
+        }
+
+        writeln!(f, "}}")
     }
 }
