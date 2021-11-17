@@ -27,11 +27,24 @@ impl TopLevelDocument {
 
 // Represents a memory block: offset and size.
 pub mod block {
+    pub static MIN_BLOCK_SIZE: usize = 16;
+
     pub type Offset = u64;
     pub type Size = usize;
     pub struct Segment {
         pub off: Offset,
         pub len: Size,
+    }
+
+    // Get the real allocation size for a given size
+    // This is the smallest power of two (bytes) that will
+    // contain the size.
+    pub fn alloc_size(len: Size) -> Size {
+        if len < MIN_BLOCK_SIZE {
+            MIN_BLOCK_SIZE
+        } else {
+            1 << ((len as f32).log2().ceil() as Size)
+        }
     }
 }
 
@@ -50,6 +63,7 @@ impl Pool {
             Err(e) => panic!("cannot open file {}: {}", path.display(), e),
         };
 
+        // TODO: implement free_blocks
         Pool {
             free_blocks: Vec::new(),
             top: 0,
@@ -72,13 +86,20 @@ impl Pool {
     // Update document, return new document.
     // Note that this may require resizing, which will
     //   update the document
-    pub fn write(&self, mut tldoc: TopLevelDocument) -> TopLevelDocument {
-        let mut buf = bincode::serialize(&tldoc.get_doc()).unwrap();
+    // TODO: refactor this and `write_new_doc` to be DRYer
+    pub fn write(&mut self, mut tldoc: TopLevelDocument) -> TopLevelDocument {
+        let buf = bincode::serialize(&tldoc.get_doc()).unwrap();
 
+        let old_len = tldoc.blk.len;
         tldoc.blk.len = buf.len();
-        // TODO: if new length is too long, move it
 
-        let size_written = self.file.write_at(&mut buf, tldoc.blk.off).unwrap();
+        // if new document is too large, reallocate it
+        if block::alloc_size(tldoc.blk.len) > block::alloc_size(old_len) {
+            tldoc.blk.off = self.top;
+            self.top += tldoc.blk.len as u64;
+        }
+
+        let size_written = self.file.write_at(&buf, tldoc.blk.off).unwrap();
         if size_written != tldoc.blk.len {
             panic!("short write on document fetch");
         }
@@ -87,15 +108,24 @@ impl Pool {
     }
 
     // Write a new document, and return the TopLevelDocument.
-    pub fn write_new_doc(&self, doc: Document) -> TopLevelDocument {
+    pub fn write_new_doc(&mut self, doc: Document) -> TopLevelDocument {
         let buf = bincode::serialize(&doc).unwrap();
 
-        // TODO: find correct position to allocate document
         let seg = block::Segment {
-            off: 0,
+            off: self.top,
             len: buf.len(),
         };
 
-        self.write(TopLevelDocument { blk: seg, doc: doc })
+        // update file position
+        self.top += seg.len as u64;
+
+        let tldoc = TopLevelDocument { blk: seg, doc: doc };
+
+        let size_written = self.file.write_at(&buf, tldoc.blk.off).unwrap();
+        if size_written != tldoc.blk.len {
+            panic!("short write on document fetch");
+        }
+
+        tldoc
     }
 }
