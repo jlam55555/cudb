@@ -3,6 +3,7 @@ mod db;
 mod document;
 mod index;
 mod mmapv1;
+mod mmapv1_test;
 mod query;
 mod value;
 

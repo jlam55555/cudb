@@ -1,6 +1,5 @@
-// A simple implementation of the mmapv1
-// storage system; each document is assigned a
-// storage block position
+// A simple implementation of the storage system based on a single file;
+// each document is assigned a storage block (offset, size).
 
 use crate::document::*;
 use std::fs::File;
@@ -47,31 +46,6 @@ pub mod block {
             panic!("document >1MB")
         } else {
             1 << ((len as f32).log2().ceil() as Size)
-        }
-    }
-
-    #[cfg(test)]
-    pub mod tests {
-        use super::*;
-
-        #[test]
-        fn test_alloc_size() {
-            assert_eq!(alloc_size(0), MIN_BLOCK_SIZE);
-            assert_eq!(alloc_size(1), MIN_BLOCK_SIZE);
-            assert_eq!(alloc_size(2), MIN_BLOCK_SIZE);
-            assert_eq!(alloc_size(3), MIN_BLOCK_SIZE);
-            assert_eq!(alloc_size(MIN_BLOCK_SIZE), MIN_BLOCK_SIZE);
-            assert_eq!(alloc_size(17), 32);
-            assert_eq!(alloc_size(43), 64);
-            assert_eq!(alloc_size(23123), 32768);
-            assert_eq!(alloc_size(1000000), 1048576);
-            assert_eq!(alloc_size(MAX_BLOCK_SIZE), MAX_BLOCK_SIZE);
-        }
-
-        #[test]
-        #[should_panic(expected = "document >1MB")]
-        fn test_invalid_alloc_size() {
-            alloc_size(MAX_BLOCK_SIZE + 1);
         }
     }
 }
@@ -124,7 +98,7 @@ impl Pool {
         // if new document is too large, reallocate it
         if block::alloc_size(tldoc.blk.len) > block::alloc_size(old_len) {
             tldoc.blk.off = self.top;
-            self.top += tldoc.blk.len as u64;
+            self.top += block::alloc_size(tldoc.blk.len) as u64;
         }
 
         let size_written = self.file.write_at(&buf, tldoc.blk.off).unwrap();
@@ -145,7 +119,7 @@ impl Pool {
         };
 
         // update file position
-        self.top += seg.len as u64;
+        self.top += block::alloc_size(seg.len) as u64;
 
         let tldoc = TopLevelDocument { blk: seg, doc: doc };
 
