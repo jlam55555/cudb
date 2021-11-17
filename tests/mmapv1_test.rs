@@ -1,6 +1,6 @@
 #[cfg(test)]
 pub mod tests {
-    use crate::mmapv1::block::*;
+    use cudb::mmapv1::block::*;
 
     #[test]
     fn test_alloc_size() {

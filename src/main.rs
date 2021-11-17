@@ -1,14 +1,5 @@
-mod crud;
-mod db;
-mod document;
-mod index;
-mod mmapv1;
-mod mmapv1_test;
-mod query;
-mod value;
-
-use document::*;
-use value::*;
+use cudb::document::Document;
+use cudb::value::Value;
 
 fn main() {
     // Create a new mutable document
