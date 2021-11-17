@@ -31,11 +31,11 @@ pub mod tests {
     // Testing pool creation/deletion
     #[test]
     fn test_pool_new() {
-        let pool_path = "hello.db";
-        let p = Pool::new(&pool_path.to_string());
+        let pool_path = Path::new("hello.db");
+        let p = Pool::new(&pool_path);
 
         // check that new pool exists
-        if !Path::new(pool_path).exists() {
+        if !pool_path.exists() {
             panic!("pool was not created");
         }
 
@@ -43,8 +43,20 @@ pub mod tests {
         p.delete();
 
         // check that pool was deleted
-        if Path::new(pool_path).exists() {
+        if pool_path.exists() {
             panic!("pool was not deleted");
         }
     }
+
+    // Testing that storing records works as expected
+    // (e.g., correctly allocating sequentially.)
+    // NOTE: this depends on the allocation method, this
+    // is currently testing the very basic sequential allocator.
+    #[test]
+    fn test_pool_alloc() {}
+
+    // Testing that records can be retrieved successfully from
+    // database file.
+    #[test]
+    fn test_pool_fetch() {}
 }

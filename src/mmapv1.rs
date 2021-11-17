@@ -3,13 +3,13 @@
 
 use crate::document::*;
 use std::os::unix::fs::FileExt;
+use std::path::{Path, PathBuf};
 use std::{
     fs,
     fs::{File, OpenOptions},
 };
 
-// TODO: how to associate storage pools with files?
-// TODO: de-fragment pool?
+// TODO: de-fragment pool? and more advanced allocation methods
 
 #[derive(Debug)]
 pub struct TopLevelDocument {
@@ -60,12 +60,12 @@ pub struct Pool {
     free_blocks: Vec<Vec<block::Offset>>,
     top: block::Offset,
     file: File,
-    path: String,
+    path: PathBuf,
 }
 
 impl Pool {
     // Create a new memory pool from a file, creating the file if necessary.
-    pub fn new(path: &String) -> Pool {
+    pub fn new(path: &Path) -> Pool {
         // Read file, panic if err
         let file = OpenOptions::new()
             .read(true)
@@ -79,7 +79,7 @@ impl Pool {
             free_blocks: Vec::new(),
             top: 0,
             file: file,
-            path: path.clone(),
+            path: PathBuf::from(&path),
         }
     }
 
