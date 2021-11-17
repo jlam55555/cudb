@@ -12,7 +12,7 @@ use std::path::Path;
 
 pub struct TopLevelDocument {
     // The last allocated memory space; updated on a call to `write()`
-    blk: block::Segment,
+    blk: block::Block,
 
     // The document associated with this document
     doc: Document,
@@ -32,7 +32,7 @@ pub mod block {
 
     pub type Offset = u64;
     pub type Size = usize;
-    pub struct Segment {
+    pub struct Block {
         pub off: Offset,
         pub len: Size,
     }
@@ -100,7 +100,7 @@ impl Pool {
     }
 
     // Fetch a top level document from a block address.
-    pub fn fetch(&mut self, seg: block::Segment) -> TopLevelDocument {
+    pub fn fetch(&mut self, seg: block::Block) -> TopLevelDocument {
         let mut buf = vec![0u8; seg.len];
         let size_read = self.file.read_at(&mut buf, seg.off).unwrap();
         if size_read != seg.len {
@@ -139,7 +139,7 @@ impl Pool {
     pub fn write_new_doc(&mut self, doc: Document) -> TopLevelDocument {
         let buf = bincode::serialize(&doc).unwrap();
 
-        let seg = block::Segment {
+        let seg = block::Block {
             off: self.top,
             len: buf.len(),
         };
