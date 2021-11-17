@@ -46,7 +46,7 @@ pub mod block {
     // Block size includes header.
     pub static MIN_BLOCK_SIZE: usize = 16;
     pub static MAX_BLOCK_SIZE: usize = 1024 * 1024;
-    pub static HEADER_SIZE: usize = 4;
+    pub static HEADER_SIZE: usize = 5;
 
     // Offset from start of pool.
     pub type Offset = u64;
@@ -63,10 +63,11 @@ pub mod block {
     pub struct Block {
         pub off: Offset,
         pub len: Size,
+        pub cap: Size,
         pub del: bool,
     }
 
-    // Get the real allocation size for a given size data
+    // Get the real allocation size (capacity) for a given size data
     // (not including header). This is the smallest power of
     // two (bytes) that will contain the data and header.
     pub fn alloc_size(data_size: Size) -> Size {
@@ -129,18 +130,20 @@ impl Pool {
     }
 
     // Helper function to read and parse (deserialize) a block header.
-    // The format of a (4-byte) block header is:
+    // The format of a (5-byte) block header is:
     // - Highest-order bit: set if the block is deleted
-    // - Low-order 31 bits: data size in bytes
+    // - Next 7 bits: capacity of current block (2^n bytes)
+    // - Next 32 bits: data size in bytes
     // TODO: validate header value
     fn fetch_block_header(&self, off: block::Offset) -> block::Block {
-        let mut buf = [0u8; 4];
+        let mut buf = [0u8; 5];
         self.file.read_exact_at(&mut buf, off).unwrap();
 
-        let header_val = LittleEndian::read_u32(&buf);
+        let header_val = LittleEndian::read_u32(&buf[1..]);
         block::Block {
-            del: (header_val & (1 << 31)) != 0,
-            len: (header_val & !(1 << 31)) as usize,
+            del: (buf[0] & (1 << 7)) != 0,
+            cap: 1 << (buf[0] & !(1 << 7)),
+            len: header_val as usize,
             off: off,
         }
     }
@@ -156,12 +159,14 @@ impl Pool {
     // Helper function to serialize and write a block header.
     fn write_block_header(&mut self, blk: &block::Block) {
         // Prepare header value
-        let mut buf = [0u8; 4];
-        let mut header_val = blk.len;
+        let mut buf = [0u8; 5];
+        let header_val = blk.len;
+        buf[0] |= (blk.cap as f64).log2().round() as u8;
+
         if blk.del {
-            header_val |= 1 << 31;
+            buf[0] |= 1 << 7;
         }
-        LittleEndian::write_u32(&mut buf, header_val as u32);
+        LittleEndian::write_u32(&mut buf[1..], header_val as u32);
 
         // Write header value
         self.file.write_all_at(&buf, blk.off).unwrap();
@@ -180,7 +185,7 @@ impl Pool {
     // Returns the resultant block, whether it is reallocated or not.
     fn alloc_block(&mut self, mut block: block::Block, new_len: usize) -> block::Block {
         // If we need to allocate a new block
-        if block::alloc_size(new_len) > block::alloc_size(block.len) {
+        if block::alloc_size(new_len) > block.cap {
             // Mark old block as deleted
             block.del = true;
             self.write_block_header(&block);
@@ -199,9 +204,10 @@ impl Pool {
         let blk = block::Block {
             off: self.top,
             len: len,
+            cap: block::alloc_size(len),
             del: false,
         };
-        self.top += block::alloc_size(len) as u64;
+        self.top += blk.cap as block::Offset;
         self.file.set_len(self.top).unwrap();
 
         blk
@@ -258,7 +264,7 @@ impl Pool {
             if !block.del {
                 tldocs.push(self.fetch(&block));
             }
-            cur_pos += block::alloc_size(block.len) as u64;
+            cur_pos += block.cap as u64;
         }
 
         tldocs
@@ -286,11 +292,11 @@ impl fmt::Display for Pool {
                 "\toffset: {}\tlength: {}\tcapacity: {}{}",
                 block.off,
                 block.len,
-                block::alloc_size(block.len),
+                block.cap,
                 if block.del { "\t(DELETED)" } else { "" },
             )
             .unwrap();
-            cur_pos += block::alloc_size(block.len) as u64;
+            cur_pos += block.cap as u64;
         }
 
         writeln!(f, "}}")
