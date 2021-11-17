@@ -2,13 +2,16 @@
 // each document is assigned a storage block (offset, size).
 
 use crate::document::*;
-use std::fs::File;
 use std::os::unix::fs::FileExt;
-use std::path::Path;
+use std::{
+    fs,
+    fs::{File, OpenOptions},
+};
 
 // TODO: how to associate storage pools with files?
 // TODO: de-fragment pool?
 
+#[derive(Debug)]
 pub struct TopLevelDocument {
     // The last allocated memory space; updated on a call to `write()`
     blk: block::Block,
@@ -31,6 +34,8 @@ pub mod block {
 
     pub type Offset = u64;
     pub type Size = usize;
+
+    #[derive(Debug)]
     pub struct Block {
         pub off: Offset,
         pub len: Size,
@@ -50,27 +55,46 @@ pub mod block {
     }
 }
 
+#[derive(Debug)]
 pub struct Pool {
     free_blocks: Vec<Vec<block::Offset>>,
     top: block::Offset,
     file: File,
+    path: String,
 }
 
 impl Pool {
-    // Create a new memory pool from a file.
-    pub fn new(path: &Path) -> Pool {
+    // Create a new memory pool from a file, creating the file if necessary.
+    pub fn new(path: &String) -> Pool {
         // Read file, panic if err
-        let file = match File::open(&path) {
-            Ok(file) => file,
-            Err(e) => panic!("cannot open file {}: {}", path.display(), e),
-        };
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(path)
+            .unwrap();
 
         // TODO: implement free_blocks
         Pool {
             free_blocks: Vec::new(),
             top: 0,
             file: file,
+            path: path.clone(),
         }
+    }
+
+    // Close pool (closes open file).
+    pub fn close(self) {
+        // Nothing to do, self and self.file will go out of scope and
+        // the file will be closed.
+    }
+
+    // Delete pool (deletes file).
+    pub fn delete(self) {
+        let path = self.path.clone();
+        self.close();
+
+        fs::remove_file(path).unwrap();
     }
 
     // Fetch a top level document from a block address.
