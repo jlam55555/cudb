@@ -3,6 +3,9 @@
 // storage block position
 
 use crate::document::*;
+use std::fs::File;
+use std::os::unix::fs::FileExt;
+use std::path::Path;
 
 // TODO: how to associate storage pools with files?
 // TODO: de-fragment pool?
@@ -17,54 +20,82 @@ pub struct TopLevelDocument {
 
 impl TopLevelDocument {
     // Getter for document
-    fn get_doc(tldoc: TopLevelDocument) -> Document {
-        tldoc.doc
+    fn get_doc(&self) -> &Document {
+        &self.doc
     }
 }
 
 // Represents a memory block: offset and size.
-// Size is an exponent of 2.
 pub mod block {
     pub type Offset = u64;
-    pub type Size = u8;
-    pub enum Segment {
-        Alloc(Offset, Size),
-        Unalloc,
+    pub type Size = usize;
+    pub struct Segment {
+        pub off: Offset,
+        pub len: Size,
     }
 }
 
 pub struct Pool {
     free_blocks: Vec<Vec<block::Offset>>,
     top: block::Offset,
+    file: File,
 }
 
 impl Pool {
-    // Fetch a top level document from a block address.
-    pub fn fetch(seg: block::Segment) -> TopLevelDocument {
-        // TopLevelDocument {
-        //     blk: block::Segment::Unalloc,
-        //     doc: Document::new(),
-        // }
+    // Create a new memory pool from a file.
+    pub fn new(path: &Path) -> Pool {
+        // Read file, panic if err
+        let file = match File::open(&path) {
+            Ok(file) => file,
+            Err(e) => panic!("cannot open file {}: {}", path.display(), e),
+        };
 
-        unimplemented!("fetch")
+        Pool {
+            free_blocks: Vec::new(),
+            top: 0,
+            file: file,
+        }
+    }
+
+    // Fetch a top level document from a block address.
+    pub fn fetch(&mut self, seg: block::Segment) -> TopLevelDocument {
+        let mut buf = vec![0u8; seg.len];
+        let size_read = self.file.read_at(&mut buf, seg.off).unwrap();
+        if size_read != seg.len {
+            panic!("short read on document fetch")
+        }
+
+        let doc: Document = bincode::deserialize(&buf).unwrap();
+        TopLevelDocument { blk: seg, doc: doc }
     }
 
     // Update document, return new document.
     // Note that this may require resizing, which will
     //   update the document
-    pub fn write(tldoc: TopLevelDocument) -> TopLevelDocument {
-        // tldoc
+    pub fn write(&self, mut tldoc: TopLevelDocument) -> TopLevelDocument {
+        let mut buf = bincode::serialize(&tldoc.get_doc()).unwrap();
 
-        unimplemented!("write")
+        tldoc.blk.len = buf.len();
+        // TODO: if new length is too long, move it
+
+        let size_written = self.file.write_at(&mut buf, tldoc.blk.off).unwrap();
+        if size_written != tldoc.blk.len {
+            panic!("short write on document fetch");
+        }
+
+        tldoc
     }
 
     // Write a new document, and return the TopLevelDocument.
-    pub fn write_new_doc(doc: Document) -> TopLevelDocument {
-        // TopLevelDocument {
-        //     blk: block::Segment::Unalloc,
-        //     doc: doc,
-        // }
+    pub fn write_new_doc(&self, doc: Document) -> TopLevelDocument {
+        let buf = bincode::serialize(&doc).unwrap();
 
-        unimplemented!("write_new_doc")
+        // TODO: find correct position to allocate document
+        let seg = block::Segment {
+            off: 0,
+            len: buf.len(),
+        };
+
+        self.write(TopLevelDocument { blk: seg, doc: doc })
     }
 }
