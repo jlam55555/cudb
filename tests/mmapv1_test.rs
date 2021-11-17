@@ -176,7 +176,7 @@ pub mod tests {
         assert_eq!(
             docs,
             p.scan()
-                .iter()
+                .iter_mut()
                 .map(|tldoc| tldoc.get_doc().clone())
                 .collect::<Vec<Document>>()
         );
@@ -237,6 +237,38 @@ pub mod tests {
     // Test document resizing (both larger and smaller)
     #[test]
     fn test_pool_resize() {
-        // TODO
+        let mut p = Pool::new(&Path::new(DB_NAME));
+        let docs = sample_documents(4);
+        let mut tldocs = Vec::new();
+
+        // Insert four documents
+        // __0__ __1__ __2__ __3__
+        // Make 1 smaller
+        // __0__ _1_   __2__ __3__
+        // Make 2 larger
+        // __0__ _1_         __3__ _______2_______
+
+        for doc in docs.iter() {
+            tldocs.push(p.write_new(doc.clone()));
+        }
+
+        println!("TopLevelDocument 1: {:#?}", tldocs[1]);
+        tldocs[1]
+            .get_doc()
+            .insert("y".to_string(), Value::String("".to_string()));
+        p.write(&mut tldocs[1]);
+        println!("Smaller TopLevelDocument 1: {:#?}", tldocs[1]);
+
+        println!("TopLevelDocument 2: {:#?}", tldocs[2]);
+        tldocs[2]
+            .get_doc()
+            .insert("y".to_string(), Value::String("a".repeat(1000)));
+        p.write(&mut tldocs[2]);
+        println!("Larger TopLevelDocument 2: {:#?}", tldocs[2]);
+
+        // Make sure we still see four elements
+        assert_eq!(p.scan().len(), 4);
+
+        p.drop();
     }
 }

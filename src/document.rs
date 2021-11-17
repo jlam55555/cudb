@@ -19,6 +19,16 @@ impl Document {
         }
     }
 
+    // Construct a document from a hashmap.
+    pub fn from(map: HashMap<String, Value>) -> Document {
+        Document { elems: map }
+    }
+
+    // Get the hashmap from a document.
+    pub fn to_map(&self) -> HashMap<String, Value> {
+        self.elems.clone()
+    }
+
     // Insert k,v pair into hashtable.
     // If key already exists, the old value is returned.
     pub fn insert(&mut self, k: String, v: Value) -> Option<Value> {

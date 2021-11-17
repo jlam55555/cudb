@@ -28,14 +28,15 @@ pub struct TopLevelDocument {
 }
 
 impl TopLevelDocument {
-    // Getter for block
+    // Getter for block; note that the block is immutable, i.e., the
+    // block for a topleveldocument can only be mutated internally.
     pub fn get_block(&self) -> &block::Block {
         &self.blk
     }
 
-    // Getter for document
-    pub fn get_doc(&self) -> &Document {
-        &self.doc
+    // Getter for document. The returned document reference is mutable.
+    pub fn get_doc(&mut self) -> &mut Document {
+        &mut self.doc
     }
 }
 
@@ -227,12 +228,10 @@ impl Pool {
     // Update document (including_header), return new document.
     // Note that this may require resizing, which will
     //   update the document
-    pub fn write(&mut self, mut tldoc: TopLevelDocument) -> TopLevelDocument {
+    pub fn write(&mut self, tldoc: &mut TopLevelDocument) {
         let buf = bincode::serialize(&tldoc.get_doc()).unwrap();
         tldoc.blk = self.alloc_block(tldoc.blk, buf.len());
         self.write_block_data(&tldoc.blk, &buf);
-
-        tldoc
     }
 
     // Write a new document (including header), and return the TopLevelDocument.
