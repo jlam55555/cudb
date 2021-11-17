@@ -29,7 +29,23 @@ $ cargo test    # run unit tests
 $ cargo clean   # delete build artifacts
 ```
 
+##### Test config
+```bash
+$ cargo test -- --nocapture --test-threads=1
+```
+- `--no-capture`: Show `stdout` even when the test fails.
+- `--test-threads=1`: Prevent running in parallel. This is to prevent
+  multiple concurrent access to the database file.
+  
+To run a single test:
+```bash
+$ cargo test [TEST_FN_NAME] -- --nocapture
+```
+where `[TEST_FN_NAME]` is one of the tests defined in the `tests/` directory, e.g.,
+`test_pool_fetch`.
+
 ##### Build without unused warnings
 ```bash
 $ RUSTFLAGS="$RUSTFLAGS -A unused_variables -A dead_code" cargo build
 ```
+These flags can be used for the `run` and `test` targets as well.

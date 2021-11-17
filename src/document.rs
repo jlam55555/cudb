@@ -5,7 +5,7 @@ use std::collections::HashMap;
 // (Data) document (as opposed to query document, etc.)
 // Note that `_id` is implemented as a regular field in the `elems`.
 // TODO: implement custom serialize/deserialize
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Document {
     elems: HashMap<String, Value>, // Hashmap of elements
 }

@@ -28,8 +28,13 @@ pub struct TopLevelDocument {
 }
 
 impl TopLevelDocument {
+    // Getter for block
+    pub fn get_block(&self) -> &block::Block {
+        &self.blk
+    }
+
     // Getter for document
-    fn get_doc(&self) -> &Document {
+    pub fn get_doc(&self) -> &Document {
         &self.doc
     }
 }
@@ -52,7 +57,7 @@ pub mod block {
     // `Size` is the size of the data (not including the header).
     // The size of the block will be `alloc_size(block)` bytes, including
     // the header.
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Copy)]
     pub struct Block {
         pub off: Offset,
         pub len: Size,
@@ -109,11 +114,16 @@ impl Pool {
     }
 
     // Delete pool (deletes file).
-    pub fn delete(self) {
+    pub fn drop(self) {
         let path = self.path.clone();
         self.close();
 
         fs::remove_file(path).unwrap();
+    }
+
+    // Gets pool (file) size
+    pub fn get_size(&self) -> usize {
+        self.top as usize
     }
 
     // Helper function to read and parse (deserialize) a block header.
@@ -123,10 +133,7 @@ impl Pool {
     // TODO: validate header value
     fn fetch_block_header(&mut self, off: block::Offset) -> block::Block {
         let mut buf = [0u8; 4];
-        let size_read = self.file.read_at(&mut buf, off).unwrap();
-        if size_read != block::HEADER_SIZE {
-            panic!("short read on document fetch")
-        }
+        self.file.read_exact_at(&mut buf, off).unwrap();
 
         let header_val = LittleEndian::read_u32(&buf);
         block::Block {
@@ -139,13 +146,9 @@ impl Pool {
     // Helper function to read block data. See `fetch_block_header` for
     // details about the format of the block header.
     fn fetch_block_data(&mut self, blk: &block::Block, buf: &mut [u8]) {
-        let size_read = self
-            .file
-            .read_at(buf, blk.off + block::HEADER_SIZE as u64)
+        self.file
+            .read_exact_at(buf, blk.off + block::HEADER_SIZE as u64)
             .unwrap();
-        if size_read != blk.len {
-            panic!("short read on document fetch")
-        }
     }
 
     // Helper function to serialize and write a block header.
@@ -159,24 +162,16 @@ impl Pool {
         LittleEndian::write_u32(&mut buf, header_val as u32);
 
         // Write header value
-        let size_written = self.file.write_at(&buf, blk.off).unwrap();
-        if size_written != block::HEADER_SIZE {
-            panic!("short write");
-        }
+        self.file.write_all_at(&buf, blk.off).unwrap();
     }
 
     // Helper function to write a document and block header. Assumes
     // block and buf are already correct.
     fn write_block_data(&mut self, blk: &block::Block, buf: &[u8]) {
         self.write_block_header(&blk);
-
-        let size_written = self
-            .file
-            .write_at(buf, blk.off + block::HEADER_SIZE as u64)
+        self.file
+            .write_all_at(buf, blk.off + block::HEADER_SIZE as u64)
             .unwrap();
-        if size_written != blk.len {
-            panic!("short write");
-        }
     }
 
     // Given an existing block and a new length, allocate a new block if necessary.
@@ -199,12 +194,15 @@ impl Pool {
 
     // Helper function to allocate and return a new block with length `len`
     fn alloc_new_block(&mut self, len: usize) -> block::Block {
-        self.top += block::alloc_size(len) as u64;
-        block::Block {
+        let blk = block::Block {
             off: self.top,
             len: len,
             del: false,
-        }
+        };
+        self.top += block::alloc_size(len) as u64;
+        self.file.set_len(self.top).unwrap();
+
+        blk
     }
 
     // Fetch a top level document from a block address, ignoring the header.
@@ -214,9 +212,16 @@ impl Pool {
 
         let doc: Document = bincode::deserialize(&buf).unwrap();
         TopLevelDocument {
-            blk: blk.clone(),
+            blk: *blk,
             doc: doc,
         }
+    }
+
+    // Delete a block.
+    // TODO: perform input validation (i.e., make sure this is a valid block.)
+    pub fn delete(&mut self, mut blk: block::Block) {
+        blk.del = true;
+        self.write_block_header(&blk);
     }
 
     // Update document (including_header), return new document.
@@ -231,7 +236,7 @@ impl Pool {
     }
 
     // Write a new document (including header), and return the TopLevelDocument.
-    pub fn write_new_doc(&mut self, doc: Document) -> TopLevelDocument {
+    pub fn write_new(&mut self, doc: Document) -> TopLevelDocument {
         let buf = bincode::serialize(&doc).unwrap();
         let tldoc = TopLevelDocument {
             blk: self.alloc_new_block(buf.len()),
@@ -250,7 +255,9 @@ impl Pool {
 
         while cur_pos < self.top {
             let block = self.fetch_block_header(cur_pos);
-            tldocs.push(self.fetch(&block));
+            if !block.del {
+                tldocs.push(self.fetch(&block));
+            }
             cur_pos += block::alloc_size(block.len) as u64;
         }
 
