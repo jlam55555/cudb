@@ -59,4 +59,9 @@ pub mod tests {
     // database file.
     #[test]
     fn test_pool_fetch() {}
+
+    // Testing that scanning a pool will return all of its
+    // records (and correctly not include any deleted records).
+    #[test]
+    fn test_pool_scan() {}
 }
