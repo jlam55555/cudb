@@ -28,6 +28,7 @@ impl TopLevelDocument {
 // Represents a memory block: offset and size.
 pub mod block {
     pub static MIN_BLOCK_SIZE: usize = 16;
+    pub static MAX_BLOCK_SIZE: usize = 1024 * 1024;
 
     pub type Offset = u64;
     pub type Size = usize;
@@ -42,8 +43,35 @@ pub mod block {
     pub fn alloc_size(len: Size) -> Size {
         if len < MIN_BLOCK_SIZE {
             MIN_BLOCK_SIZE
+        } else if len > MAX_BLOCK_SIZE {
+            panic!("document >1MB")
         } else {
             1 << ((len as f32).log2().ceil() as Size)
+        }
+    }
+
+    #[cfg(test)]
+    pub mod tests {
+        use super::*;
+
+        #[test]
+        fn test_alloc_size() {
+            assert_eq!(alloc_size(0), MIN_BLOCK_SIZE);
+            assert_eq!(alloc_size(1), MIN_BLOCK_SIZE);
+            assert_eq!(alloc_size(2), MIN_BLOCK_SIZE);
+            assert_eq!(alloc_size(3), MIN_BLOCK_SIZE);
+            assert_eq!(alloc_size(MIN_BLOCK_SIZE), MIN_BLOCK_SIZE);
+            assert_eq!(alloc_size(17), 32);
+            assert_eq!(alloc_size(43), 64);
+            assert_eq!(alloc_size(23123), 32768);
+            assert_eq!(alloc_size(1000000), 1048576);
+            assert_eq!(alloc_size(MAX_BLOCK_SIZE), MAX_BLOCK_SIZE);
+        }
+
+        #[test]
+        #[should_panic(expected = "document >1MB")]
+        fn test_invalid_alloc_size() {
+            alloc_size(MAX_BLOCK_SIZE + 1);
         }
     }
 }

@@ -25,6 +25,7 @@ TODO: physical storage, block diagram
 ```bash
 $ cargo build   # build project
 $ cargo run     # build and run project
+$ cargo test    # run unit tests
 $ cargo clean   # delete build artifacts
 ```
 
