@@ -1,12 +1,10 @@
-// A simple implementation of the storage system based on a single file;
-// each document is assigned a storage block (offset, size).
-//
-// A storage pool supports both random-access lookup and scanning
-// (i.e., it is the filesystem analog of a collection). Since documents
-// are variable length, each block has a small fixed-sized header
-// indicating the size of the next document in bytes. Each block
-// is stored as a power of two for efficiency reasons.
-
+//! A simple implementation of a mmapv1-like storage system.
+//!
+//! A storage pool supports both random-access lookup and scanning
+//! (i.e., it is the filesystem analog of a collection). Since documents
+//! are variable length, each block has a small fixed-sized header
+//! indicating the size of the next document in bytes. Each block
+//! is stored as a power of two for efficiency reasons.
 use crate::document::*;
 use byteorder::{ByteOrder, LittleEndian};
 use std::fmt;
@@ -19,57 +17,71 @@ use std::{
 
 // TODO: de-fragment pool? and more advanced allocation methods
 
+/// A wrapper around a `Document` which contains pool allocation information.
 #[derive(Debug)]
 pub struct TopLevelDocument {
-    // The last allocated memory space; updated on a call to `write()`
+    /// The last allocated memory space; updated on a call to `write()`
     blk: block::Block,
 
-    // The document associated with this document
+    /// The document associated with this document
     doc: Document,
 }
 
 impl TopLevelDocument {
-    // Getter for block; note that the block is immutable, i.e., the
-    // block for a topleveldocument can only be mutated internally.
+    /// Getter for block; note that the block is immutable, i.e., the
+    /// block for a topleveldocument can only be mutated internally.
     pub fn get_block(&self) -> &block::Block {
         &self.blk
     }
 
-    // Getter for document. The returned document reference is mutable.
+    /// Getter for document. The returned document reference is mutable.
     pub fn get_doc(&mut self) -> &mut Document {
         &mut self.doc
     }
 }
 
-// Represents a memory block: offset and size.
+/// Represents a memory block: offset and size.
 pub mod block {
-    // Block size includes header.
+    /// Minimum block size including header, in bytes.
+    /// Prevents excessive fragmentation.
     pub static MIN_BLOCK_SIZE: usize = 16;
+
+    /// Maximum block size including header, in bytes.
     pub static MAX_BLOCK_SIZE: usize = 1024 * 1024;
+
+    /// Header size, in bytes.
     pub static HEADER_SIZE: usize = 5;
 
-    // Offset from start of pool.
+    /// Indicates a memory offset from the beginning of the pool.
     pub type Offset = u64;
 
-    // Size of data (not including header).
+    /// Indicates a memory size.
     pub type Size = usize;
 
-    // Stores a memory block indicating a document.
-    // `Offset` is the position of the header from the start of the pool.
-    // `Size` is the size of the data (not including the header).
-    // The size of the block will be `alloc_size(block)` bytes, including
-    // the header.
+    /// Stores a memory block (for a single document).
     #[derive(Debug, Clone, Copy)]
     pub struct Block {
+        /// Position of the header from the start of the pool.
         pub off: Offset,
+
+        /// Length of the data in bytes (not including header).
+        /// At most `cap-HEADER_SIZE`.
         pub len: Size,
+
+        /// Capacity of the block in bytes. Is always a power of two,
+        /// lying in the range [`MIN_BLOCK_SIZE`, `MAX_BLOCK_SIZE`].
         pub cap: Size,
+
+        /// Whether the block is deleted (for soft deletion).
         pub del: bool,
     }
 
-    // Get the real allocation size (capacity) for a given size data
-    // (not including header). This is the smallest power of
-    // two (bytes) that will contain the data and header.
+    /// Get the real allocation size (capacity) for a given size data
+    /// (not including header). This is the smallest power of
+    /// two (bytes) that will contain the data and header.
+    ///
+    /// Note that a document may be shrunken, in which case this may
+    /// not be the smallest power of two that can fit the data.
     pub fn alloc_size(data_size: Size) -> Size {
         let block_size = data_size + HEADER_SIZE;
         if block_size < MIN_BLOCK_SIZE {
@@ -82,6 +94,12 @@ pub mod block {
     }
 }
 
+/// A linear collection of contiguous blocks.
+///
+/// Implements random-access
+/// operations: insertion, update (including resizing/reallocation),
+/// (soft) deletion. Also implements a linear scanning.
+/// Currently uses a very simple (bad) allocation scheme.
 #[derive(Debug)]
 pub struct Pool {
     // TODO: implement a better allocation scheme
@@ -92,7 +110,7 @@ pub struct Pool {
 }
 
 impl Pool {
-    // Create a new memory pool from a file, creating the file if necessary.
+    /// Create a new memory pool from a file, creating the file if necessary.
     pub fn new(path: &Path) -> Pool {
         // Read file, panic if err
         let file = OpenOptions::new()
@@ -110,13 +128,13 @@ impl Pool {
         }
     }
 
-    // Close pool (closes open file).
+    /// Close pool (closes open file).
     pub fn close(self) {
         // Nothing to do, self and self.file will go out of scope and
         // the file will be closed.
     }
 
-    // Delete pool (deletes file).
+    /// Delete pool (deletes file).
     pub fn drop(self) {
         let path = self.path.clone();
         self.close();
@@ -124,7 +142,7 @@ impl Pool {
         fs::remove_file(path).unwrap();
     }
 
-    // Gets pool (file) size
+    /// Gets pool (file) size in bytes.
     pub fn get_size(&self) -> usize {
         self.top as usize
     }
@@ -213,7 +231,7 @@ impl Pool {
         blk
     }
 
-    // Fetch a top level document from a block address, ignoring the header.
+    /// Fetch a top level document from a block address, ignoring the header.
     pub fn fetch(&mut self, blk: &block::Block) -> TopLevelDocument {
         let mut buf = vec![0u8; blk.len];
         self.fetch_block_data(&blk, &mut buf);
@@ -225,23 +243,22 @@ impl Pool {
         }
     }
 
-    // Delete a block.
+    /// Delete a block.
     // TODO: perform input validation (i.e., make sure this is a valid block.)
     pub fn delete(&mut self, mut blk: block::Block) {
         blk.del = true;
         self.write_block_header(&blk);
     }
 
-    // Update document (including_header), return new document.
-    // Note that this may require resizing, which will
-    //   update the document
+    /// Update document (including_header), return new document.
+    /// Note that this may require resizing, which may update the document.
     pub fn write(&mut self, tldoc: &mut TopLevelDocument) {
         let buf = bincode::serialize(&tldoc.get_doc()).unwrap();
         tldoc.blk = self.alloc_block(tldoc.blk, buf.len());
         self.write_block_data(&tldoc.blk, &buf);
     }
 
-    // Write a new document (including header), and return the TopLevelDocument.
+    /// Write a new document (including header), and return the TopLevelDocument.
     pub fn write_new(&mut self, doc: Document) -> TopLevelDocument {
         let buf = bincode::serialize(&doc).unwrap();
         let tldoc = TopLevelDocument {
@@ -253,7 +270,7 @@ impl Pool {
         tldoc
     }
 
-    // Linearly scan and retrieve all documents from the pool.
+    /// Linearly scan and retrieve all documents from the pool.
     // TODO: convert the result into a stream for efficiency
     pub fn scan(&mut self) -> Vec<TopLevelDocument> {
         let mut cur_pos: block::Offset = 0;
@@ -271,9 +288,9 @@ impl Pool {
     }
 }
 
-// Allow pretty-printing of pool.
+/// Allow pretty-printing of pool.
 impl fmt::Display for Pool {
-    // Prints a pool with all of its allocated blocks, for debugging purposes.
+    /// Prints a pool with all of its allocated blocks, for debugging purposes.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(
             f,

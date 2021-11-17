@@ -26,7 +26,13 @@ TODO: physical storage, block diagram
 $ cargo build   # build project
 $ cargo run     # build and run project
 $ cargo test    # run unit tests
+$ cargo doc     # build documentation
 $ cargo clean   # delete build artifacts
+```
+
+##### Open documentation in browser
+```bash
+$ cargo doc --open
 ```
 
 ##### Test config
