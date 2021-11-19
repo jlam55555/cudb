@@ -1,5 +1,8 @@
-# build files
+# Build files
 target/
 
-# temp files
+# Temp files
 *~
+
+# IDEs
+.idea/
