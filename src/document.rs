@@ -3,6 +3,7 @@
 use crate::value::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use crate::query::FieldPath;
 
 /// (Data) document (as opposed to query document, etc.)
 /// Note that `_id` is implemented as a regular field in the `elems`.
@@ -25,9 +26,28 @@ impl Document {
         Document { elems: map }
     }
 
+    /// Retrieve the value given the path.
+    pub fn get(&self, path: FieldPath) -> Value {
+        let mut temp_elems = &self.elems;
+
+        for component in path[0..path.len()-1].iter() {
+            temp_elems = match temp_elems.get(&component[..]).unwrap() {
+                Value::Dict(sub_doc) => sub_doc.get_map_ref(),
+                _ => panic!("Invalid path: Non-document found"),
+            };
+        }
+
+        temp_elems.get(&path.last().unwrap()[..]).unwrap().clone()
+    }
+
     /// Get the hashmap from a document.
-    pub fn to_map(&self) -> HashMap<String, Value> {
+    pub fn get_map(&self) -> HashMap<String, Value> {
         self.elems.clone()
+    }
+
+    /// Get a reference to the hashmap from a document.
+    pub fn get_map_ref(&self) -> &HashMap<String, Value> {
+        &self.elems
     }
 
     /// Insert k,v pair into hashtable.
