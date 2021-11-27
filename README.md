@@ -1,8 +1,10 @@
 # cudb
 
-Simple MongoDB-like DBMS (rename pending)
+Simple MongoDB-like DBMS (rename pending to cuda++)
 
 ECE464 Final project by Jonathan Lam, Derek Lee, Victor Zhang
+
+API documentation can be found at [jlam55555.github.io/cudb][docs].
 
 ---
 
@@ -59,3 +61,5 @@ where `[TEST_FN_NAME]` is one of the tests defined in the `tests/` directory, e.
 $ RUSTFLAGS="$RUSTFLAGS -A unused_variables -A dead_code" cargo build
 ```
 These flags can be used for the `run` and `test` targets as well.
+
+[docs]: https://jlam55555.github.io/cudb/
