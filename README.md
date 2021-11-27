@@ -23,16 +23,20 @@ TODO: physical storage, block diagram
 `cargo` is required to build this project.
 
 ```bash
-$ cargo build   # build project
-$ cargo run     # build and run project
-$ cargo test    # run unit tests
-$ cargo doc     # build documentation
-$ cargo clean   # delete build artifacts
+$ cargo build                                 # build project
+$ cargo test -- --nocapture --test-threads=1  # run unit tests
+$ cargo doc --no-deps                         # build documentation
+$ cargo clean                                 # delete build artifacts
 ```
 
 ##### Open documentation in browser
 ```bash
-$ cargo doc --open
+$ cargo doc --no-deps --open
+```
+
+##### Build documentation to `docs/`
+```bash
+$ ./build_docs.sh
 ```
 
 ##### Test config
