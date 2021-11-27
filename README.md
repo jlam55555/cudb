@@ -1,23 +1,50 @@
-# cudb
+# cudb (a.k.a. cuda++)
 
-Simple MongoDB-like DBMS (rename pending to cuda++)
+Simple document-based noSQL DBMS modelled after MongoDB. (Has nothing to do with CUDA, has a lot to do with the <b>C</b>ooper <b>U</b>nion and <b>D</b>ata<b>B</b>ases.)
 
 ECE464 Final project by Jonathan Lam, Derek Lee, Victor Zhang
 
-API documentation can be found at [jlam55555.github.io/cudb][docs].
+[API documentation][docs]
 
 ---
 
 ### Functional design
-TODO: which features are supported
 
-##### API
-TODO: how to interface with this system
+##### CRUD operations
+
+TODO
+
+##### Operations on collections
+
+TODO
+
+##### Documents and data types
+
+TODO
+
+##### Query semantics
+
+TODO: policies on missing index values
 
 ---
 
 ### Architectural design
-TODO: physical storage, block diagram
+
+##### Persistence / filesystem backing store
+
+TODO
+
+##### Serialization
+
+TODO
+
+##### Documents and values
+
+TODO
+
+##### Indices
+
+TODO: managing indices, matching queries to indices, b-trees
 
 ---
 
