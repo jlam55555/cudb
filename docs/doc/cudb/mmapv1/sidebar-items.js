@@ -1,1 +1,0 @@
-initSidebarItems({"mod":[["block","Represents a memory block: offset and size."]],"struct":[["Pool","A linear collection of contiguous blocks."],["TopLevelDocument","A wrapper around a `Document` which contains pool allocation information."]]});
