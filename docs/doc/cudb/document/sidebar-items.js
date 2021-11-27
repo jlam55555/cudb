@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Document","(Data) document (as opposed to query document, etc.) Note that `_id` is implemented as a regular field in the `elems`."]]});
