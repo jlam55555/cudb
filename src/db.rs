@@ -2,8 +2,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
-use crate::index::IndexSchema;
-use crate::index::index_instance_module;
+use crate::index::{Index, IndexSchema};
 use crate::mmapv1::{block, Pool};
 use crate::query::FieldPath;
 
@@ -16,7 +15,7 @@ pub struct Database {}
 /// User API for collection-level actions.
 pub struct Collection {
     pool: Pool,
-    indices: HashMap<IndexSchema, BTreeMap<index_instance_module::IndexInstance, block::Offset>>,
+    indices: HashMap<IndexSchema, BTreeMap<Index, block::Offset>>,
 }
 
 impl Client {
@@ -52,7 +51,6 @@ impl Collection {
     /// Create a B-tree index on a list of fields in the collection.
     pub fn create_index(&mut self, ind_names: Vec<FieldPath>) -> () {
         let index_schema = IndexSchema::new(ind_names);
-        let index_instance_factory = index_instance_module::IndexInstanceFactory::new(index_schema.clone());
 
         // ToDo: Make get_const_doc()
         // Loop through all the documents and insert them into the B-tree
@@ -62,7 +60,7 @@ impl Collection {
             let doc = &*top_level_doc.get_doc();
 
             // Create the index instance for the document
-            let index_instance = index_instance_factory.create_index_instance(doc.clone());
+            let index_instance = index_schema.create_index_instance(doc.clone());
 
             // b_tree.insert()
         }
@@ -71,7 +69,7 @@ impl Collection {
     }
 
     /// Get all indices created on this collection.
-    pub fn get_indices(&self) -> &HashMap<IndexSchema, BTreeMap<index_instance_module::IndexInstance, block::Offset>> {
+    pub fn get_indices(&self) -> &HashMap<IndexSchema, BTreeMap<Index, block::Offset>> {
         &self.indices
     }
 }

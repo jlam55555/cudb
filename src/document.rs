@@ -27,7 +27,7 @@ impl Document {
     }
 
     /// Retrieve the value given the path.
-    pub fn get(&self, path: FieldPath) -> Value {
+    pub fn get(&self, path: &FieldPath) -> Value {
         let mut temp_elems = &self.elems;
 
         for component in path[0..path.len()-1].iter() {
