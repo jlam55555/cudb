@@ -1,6 +1,5 @@
 //! B-tree indexing.
 
-// use compare::{Compare, natural};
 use std::collections::HashSet;
 use crate::query::FieldPath;
 use crate::document::Document;
