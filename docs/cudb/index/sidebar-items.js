@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Index","Store the fields used for an index."],["IndexInstance","Store the values for the fields for a particular document."]]});
