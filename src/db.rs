@@ -59,10 +59,10 @@ impl Collection {
             // Dereference and re-reference to get immutable doc
             let doc = &*top_level_doc.get_doc();
 
-            // Create the index instance for the document
-            let index_instance = index_schema.create_index_instance(doc.clone());
+            // Create the index for the document
+            let index = index_schema.create_index_instance(doc);
 
-            // b_tree.insert()
+            b_tree.insert(index, top_level_doc.get_block().off);
         }
 
         self.indices.insert(index_schema, b_tree);

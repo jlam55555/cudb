@@ -8,7 +8,7 @@ use crate::query::FieldPath;
 /// (Data) document (as opposed to query document, etc.)
 /// Note that `_id` is implemented as a regular field in the `elems`.
 // TODO: implement custom serialize/deserialize
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct Document {
     elems: HashMap<String, Value>, // Hashmap of elements
 }
