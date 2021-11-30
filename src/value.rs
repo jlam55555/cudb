@@ -1,8 +1,8 @@
 //! Variant types for flexible JSON-like document values.
 
-use std::cmp::Ordering;
 use crate::document::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 
 /// Variant type for (data) document values.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -20,25 +20,24 @@ pub enum Value {
 }
 
 impl PartialOrd<Self> for Value {
+    /// We can only compare like scalar types (i.e., not documents nor arrays).
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        todo!()
+        match (self, other) {
+            (Self::Id(i1), Self::Id(i2)) => i1.partial_cmp(i2),
+            (Self::Int32(i1), Self::Int32(i2)) => i1.partial_cmp(i2),
+            (Self::String(s1), Self::String(s2)) => s2.partial_cmp(s2),
+            _ => None,
+        }
     }
 }
 
 impl Ord for Value {
+    /// Define a total ordering on all scalar values. Panics if non-scalar
+    /// or unlike values.
     fn cmp(&self, other: &Self) -> Ordering {
-        todo!()
-    }
-
-    fn max(self, other: Self) -> Self where Self: Sized {
-        todo!()
-    }
-
-    fn min(self, other: Self) -> Self where Self: Sized {
-        todo!()
-    }
-
-    fn clamp(self, min: Self, max: Self) -> Self where Self: Sized {
-        todo!()
+        match self.partial_cmp(other) {
+            Some(ord) => ord,
+            None => panic!("invalid value comparison"),
+        }
     }
 }
