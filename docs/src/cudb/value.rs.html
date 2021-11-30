@@ -20,14 +20,39 @@
 <span id="17">17</span>
 <span id="18">18</span>
 <span id="19">19</span>
+<span id="20">20</span>
+<span id="21">21</span>
+<span id="22">22</span>
+<span id="23">23</span>
+<span id="24">24</span>
+<span id="25">25</span>
+<span id="26">26</span>
+<span id="27">27</span>
+<span id="28">28</span>
+<span id="29">29</span>
+<span id="30">30</span>
+<span id="31">31</span>
+<span id="32">32</span>
+<span id="33">33</span>
+<span id="34">34</span>
+<span id="35">35</span>
+<span id="36">36</span>
+<span id="37">37</span>
+<span id="38">38</span>
+<span id="39">39</span>
+<span id="40">40</span>
+<span id="41">41</span>
+<span id="42">42</span>
+<span id="43">43</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! Variant types for flexible JSON-like document values.</span>
 
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::document</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Serialize</span>, <span class="ident">Deserialize</span>};
+<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
+<span class="kw">use</span> <span class="ident">std::cmp::Ordering</span>;
 
 <span class="doccomment">/// Variant type for (data) document values.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Clone</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Clone</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Value</span> {
     <span class="doccomment">/// Special type for unique identification, similar to MongoDB&#39;s `_id`.</span>
     <span class="ident">Id</span>(<span class="ident">String</span>),
@@ -39,6 +64,29 @@
     <span class="ident">Dict</span>(<span class="ident">Document</span>),
     <span class="doccomment">/// Array types.</span>
     <span class="ident">Array</span>(<span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span>),
+}
+
+<span class="kw">impl</span> <span class="ident">PartialOrd</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Value</span> {
+    <span class="doccomment">/// We can only compare like scalar types (i.e., not documents nor arrays).</span>
+    <span class="kw">fn</span> <span class="ident">partial_cmp</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Ordering</span><span class="op">&gt;</span> {
+        <span class="kw">match</span> (<span class="self">self</span>, <span class="ident">other</span>) {
+            (<span class="self">Self</span><span class="ident">::Id</span>(<span class="ident">i1</span>), <span class="self">Self</span><span class="ident">::Id</span>(<span class="ident">i2</span>)) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">i1</span>.<span class="ident">partial_cmp</span>(<span class="ident">i2</span>),
+            (<span class="self">Self</span><span class="ident">::Int32</span>(<span class="ident">i1</span>), <span class="self">Self</span><span class="ident">::Int32</span>(<span class="ident">i2</span>)) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">i1</span>.<span class="ident">partial_cmp</span>(<span class="ident">i2</span>),
+            (<span class="self">Self</span><span class="ident">::String</span>(<span class="ident">s1</span>), <span class="self">Self</span><span class="ident">::String</span>(<span class="ident">s2</span>)) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">s2</span>.<span class="ident">partial_cmp</span>(<span class="ident">s2</span>),
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="prelude-val">None</span>,
+        }
+    }
+}
+
+<span class="kw">impl</span> <span class="ident">Ord</span> <span class="kw">for</span> <span class="ident">Value</span> {
+    <span class="doccomment">/// Define a total ordering on all scalar values. Panics if non-scalar</span>
+    <span class="doccomment">/// or unlike values.</span>
+    <span class="kw">fn</span> <span class="ident">cmp</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Ordering</span> {
+        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">partial_cmp</span>(<span class="ident">other</span>) {
+            <span class="prelude-val">Some</span>(<span class="ident">ord</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">ord</span>,
+            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic!</span>(<span class="string">&quot;invalid value comparison&quot;</span>),
+        }
+    }
 }
 </pre></div>
 </section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="cudb" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div>

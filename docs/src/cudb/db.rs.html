@@ -69,12 +69,19 @@
 <span id="66">66</span>
 <span id="67">67</span>
 <span id="68">68</span>
+<span id="69">69</span>
+<span id="70">70</span>
+<span id="71">71</span>
+<span id="72">72</span>
+<span id="73">73</span>
+<span id="74">74</span>
+<span id="75">75</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="doccomment">//! User-facing structural API of database.</span>
 
 <span class="kw">use</span> <span class="ident">std::collections</span>::{<span class="ident">BTreeMap</span>, <span class="ident">HashMap</span>};
 <span class="kw">use</span> <span class="ident">std::path::Path</span>;
-<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::index</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::index</span>::{<span class="ident">Index</span>, <span class="ident">IndexSchema</span>};
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::mmapv1</span>::{<span class="ident">block</span>, <span class="ident">Pool</span>};
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::query::FieldPath</span>;
 
@@ -87,7 +94,7 @@
 <span class="doccomment">/// User API for collection-level actions.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Collection</span> {
     <span class="ident">pool</span>: <span class="ident">Pool</span>,
-    <span class="ident">indices</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">Index</span>, <span class="ident">BTreeMap</span><span class="op">&lt;</span><span class="ident">IndexInstance</span>, <span class="ident">block::Offset</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+    <span class="ident">indices</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">IndexSchema</span>, <span class="ident">BTreeMap</span><span class="op">&lt;</span><span class="ident">Index</span>, <span class="ident">block::Offset</span><span class="op">&gt;</span><span class="op">&gt;</span>,
 }
 
 <span class="kw">impl</span> <span class="ident">Client</span> {
@@ -109,7 +116,7 @@
 <span class="kw">impl</span> <span class="ident">Collection</span> {
     <span class="comment">// aggregate/lookup ... ?</span>
 
-    <span class="doccomment">/// Create a collection from a path</span>
+    <span class="doccomment">/// Create a collection from a path.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">path</span>: <span class="ident">String</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Collection</span> {
         <span class="kw">let</span> <span class="ident">pool_path</span> <span class="op">=</span> <span class="ident">Path::new</span>(<span class="kw-2">&amp;</span><span class="ident">path</span>);
         <span class="kw">let</span> <span class="ident">p</span> <span class="op">=</span> <span class="ident">Pool::new</span>(<span class="kw-2">&amp;</span><span class="ident">pool_path</span>);
@@ -120,21 +127,28 @@
         }
     }
 
-    <span class="doccomment">/// Create a B-tree index on a set of fields in the collection.</span>
+    <span class="doccomment">/// Create a B-tree index on a list of fields in the collection.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_index</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">ind_names</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">FieldPath</span><span class="op">&gt;</span>) <span class="op">-</span><span class="op">&gt;</span> () {
-        <span class="kw">let</span> <span class="ident">ind</span> <span class="op">=</span> <span class="ident">Index::new</span>(<span class="ident">ind_names</span>);
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">b_tree</span> <span class="op">=</span> <span class="ident">BTreeMap::new</span>();
+        <span class="kw">let</span> <span class="ident">index_schema</span> <span class="op">=</span> <span class="ident">IndexSchema::new</span>(<span class="ident">ind_names</span>);
 
-        <span class="comment">// ToDo: Make get_const_doc() and remove mut doc</span>
-        <span class="kw">for</span> <span class="kw-2">mut</span> <span class="ident">doc</span> <span class="kw">in</span> <span class="self">self</span>.<span class="ident">pool</span>.<span class="ident">scan</span>() {
-            <span class="ident">doc</span>.<span class="ident">get_doc</span>();
+        <span class="comment">// ToDo: Make get_const_doc()</span>
+        <span class="comment">// Loop through all the documents and insert them into the B-tree</span>
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">b_tree</span> <span class="op">=</span> <span class="ident">BTreeMap::new</span>();
+        <span class="kw">for</span> <span class="kw-2">mut</span> <span class="ident">top_level_doc</span> <span class="kw">in</span> <span class="self">self</span>.<span class="ident">pool</span>.<span class="ident">scan</span>() {
+            <span class="comment">// Dereference and re-reference to get immutable doc</span>
+            <span class="kw">let</span> <span class="ident">doc</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="ident">top_level_doc</span>.<span class="ident">get_doc</span>();
+
+            <span class="comment">// Create the index for the document</span>
+            <span class="kw">let</span> <span class="ident">index</span> <span class="op">=</span> <span class="ident">index_schema</span>.<span class="ident">create_index_instance</span>(<span class="ident">doc</span>);
+
+            <span class="ident">b_tree</span>.<span class="ident">insert</span>(<span class="ident">index</span>, <span class="ident">top_level_doc</span>.<span class="ident">get_block</span>().<span class="ident">off</span>);
         }
 
-        <span class="self">self</span>.<span class="ident">indices</span>.<span class="ident">insert</span>(<span class="ident">ind</span>, <span class="ident">b_tree</span>);
+        <span class="self">self</span>.<span class="ident">indices</span>.<span class="ident">insert</span>(<span class="ident">index_schema</span>, <span class="ident">b_tree</span>);
     }
 
     <span class="doccomment">/// Get all indices created on this collection.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_indices</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">Index</span>, <span class="ident">BTreeMap</span><span class="op">&lt;</span><span class="ident">IndexInstance</span>, <span class="ident">block::Offset</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_indices</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">IndexSchema</span>, <span class="ident">BTreeMap</span><span class="op">&lt;</span><span class="ident">Index</span>, <span class="ident">block::Offset</span><span class="op">&gt;</span><span class="op">&gt;</span> {
         <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">indices</span>
     }
 }
