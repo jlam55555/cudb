@@ -1,6 +1,6 @@
 //! User-facing structural API of database.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::Path;
 use crate::index::{Index, IndexSchema};
 use crate::mmapv1::{block, Pool};
@@ -15,7 +15,7 @@ pub struct Database {}
 /// User API for collection-level actions.
 pub struct Collection {
     pool: Pool,
-    indices: HashMap<IndexSchema, BTreeMap<Index, block::Offset>>,
+    indices: HashMap<IndexSchema, BTreeMap<Index, HashSet<block::Offset>>>,
 }
 
 impl Client {
@@ -38,8 +38,8 @@ impl Collection {
     // aggregate/lookup ... ?
 
     /// Create a collection from a path.
-    pub fn from(path: String) -> Collection {
-        let pool_path = Path::new(&path);
+    pub fn from(path: &str) -> Collection {
+        let pool_path = Path::new(path);
         let p = Pool::new(&pool_path);
 
         Collection {
@@ -48,8 +48,17 @@ impl Collection {
         }
     }
 
+    /// Get the collection's underlying pool.
+    // TODO: replace usages of this with a Collection-level API,
+    // instead of the pool-level API.
+    pub fn get_pool(&mut self) -> &mut Pool {
+        &mut self.pool
+    }
+
     /// Create a B-tree index on a list of fields in the collection.
-    pub fn create_index(&mut self, ind_names: Vec<FieldPath>) -> () {
+    // TODO: make sure the field is unique on all documents.
+    // TODO: make sure the field exists on all documents, or assign default value.
+    pub fn create_index(&mut self, ind_names: Vec<FieldPath>) {
         let index_schema = IndexSchema::new(ind_names);
 
         // ToDo: Make get_const_doc()
@@ -62,14 +71,32 @@ impl Collection {
             // Create the index for the document
             let index = index_schema.create_index_instance(doc);
 
-            b_tree.insert(index, top_level_doc.get_block().off);
+            if !b_tree.contains_key(&index) {
+                b_tree.insert(index.clone(), HashSet::new());
+            }
+
+            b_tree.get_mut(&index).unwrap().insert(top_level_doc.get_block().off);
+            
+            // b_tree.insert(index, top_level_doc.get_block().off);
         }
 
         self.indices.insert(index_schema, b_tree);
     }
 
     /// Get all indices created on this collection.
-    pub fn get_indices(&self) -> &HashMap<IndexSchema, BTreeMap<Index, block::Offset>> {
+    pub fn get_indices(&self) -> &HashMap<IndexSchema, BTreeMap<Index, HashSet<block::Offset>>> {
         &self.indices
+    }
+
+    /// Close collection and underlying file pointers.
+    pub fn close(self) {
+        self.pool.close();
+    }
+
+    /// Drop collection.
+    pub fn drop(self) {
+        self.pool.drop();
+
+        // TODO: Drop index. Right now index isn't stored so no problem.
     }
 }

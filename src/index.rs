@@ -7,7 +7,7 @@ use crate::value::Value;
 
 // TODO: implementing indices/B-trees
 /// Store the fields used for an index.
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct IndexSchema {
     fields: Vec<FieldPath>,
 }
@@ -52,7 +52,7 @@ impl IndexSchema {
 }
 
 /// Store the values for the fields for a particular document.
-#[derive(PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq)]
 pub struct Index {
     values: Vec<Value>,
 }
