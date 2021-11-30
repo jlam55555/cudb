@@ -14,6 +14,7 @@ pub mod tests {
     fn test_create_index() {
         let mut col = Collection::from(utils::DB_NAME);
 
+        // Visually check that the documents and indices are created correctly
         for doc in utils::sample_documents(5) {
             println!("Inserting document: {:#?}", doc);
             col.get_pool().write_new(doc);
@@ -22,12 +23,18 @@ pub mod tests {
         col.create_index(vec![vec![String::from("key")]]);
         col.create_index(vec![vec![String::from("y")]]);
 
-        println!("Pool: {}", col.get_pool());
         println!("Indices: {:#?}", col.get_indices());
 
         col.drop();
     }
 
-    // Insert and remove values from the index.
-    // TODO
+    // TODO: Indices on keys with non-unique values.
+
+    // TODO: Indices on keys that do not exist on all documents.
+
+    // TODO: Indices remain correct after CUD operations.
+
+    // TODO: Query matching chooses a query with the most fields matched.
+
+    // TODO: Query returns correct documents.
 }
