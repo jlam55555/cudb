@@ -56,8 +56,8 @@ impl Collection {
     }
 
     /// Create a B-tree index on a list of fields in the collection.
-    // TODO: make sure the field is unique on all documents.
     // TODO: make sure the field exists on all documents, or assign default value.
+    //       i.e., `Document::get()` should not panic! if key does not exist
     pub fn create_index(&mut self, ind_names: Vec<FieldPath>) {
         let index_schema = IndexSchema::new(ind_names);
 
@@ -76,8 +76,6 @@ impl Collection {
             }
 
             b_tree.get_mut(&index).unwrap().insert(top_level_doc.get_block().off);
-            
-            // b_tree.insert(index, top_level_doc.get_block().off);
         }
 
         self.indices.insert(index_schema, b_tree);
