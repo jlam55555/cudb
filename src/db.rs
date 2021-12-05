@@ -100,19 +100,17 @@ impl Collection {
 
     /// Get the index schema that most closely matches the provided constraints.
     /// Only index schemas that fully match the constraints will be considered.
-    fn get_best_index_schema(&self, constraints: ConstraintDocument) -> IndexSchema {
+    fn get_best_index_schema(&self, constraints: ConstraintDocument) -> Option<&IndexSchema> {
         let query_fields = constraints.keys().collect();
-        let mut best_index_schema = IndexSchema::new(Vec::new());
 
-        for index_schema in self.indices.keys() {
-            // Check if all fields in the index schema appear in the query
-            if index_schema.get_fields().len() == index_schema.get_num_matched_fields(&query_fields) as usize {
-                // Check if we have seen a better index schema before
-                if best_index_schema.get_fields().len() < index_schema.get_fields().len() {
-                    best_index_schema = index_schema.clone();
-                }
-            }
-        }
+        // Get the number of matched fields for each index schema
+        // Keep index schemas if every field inside is in the constraints
+        // Get the first index schema with the max matches
+        let best_index_schema = self.indices.keys()
+            .map(|x| (x, x.get_num_matched_fields(&query_fields)))
+            .filter(|x| x.0.get_fields().len() == x.1 as usize) // Note that we cast i32 to usize (unsafe vice versa)
+            .max_by(|x, y| (*x).1.cmp(&(*y).1))
+            .map(|x| x.0);
 
         best_index_schema
     }
