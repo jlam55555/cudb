@@ -37,7 +37,7 @@ impl IndexSchema {
 
     // ToDo: Decide if public or private
     /// Count the number of matched index fields in the query fields.
-    pub fn get_num_matched_columns(&self, query_fields: &HashSet<FieldPath>) -> i32 {
+    pub fn get_num_matched_fields(&self, query_fields: &HashSet<FieldPath>) -> i32 {
         let index_fields = self.get_fields();
 
         let mut cur_matched = 0;
