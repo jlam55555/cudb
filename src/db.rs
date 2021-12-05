@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::Path;
 use crate::index::{Index, IndexSchema};
 use crate::mmapv1::{block, Pool};
-use crate::query::FieldPath;
+use crate::query::{ConstraintDocument, FieldPath};
 
 /// User API for connection/client-level actions.
 pub struct Client {}
@@ -97,4 +97,24 @@ impl Collection {
 
         // TODO: Drop index. Right now index isn't stored so no problem.
     }
+
+    /// Get the index schema that most closely matches the provided constraints.
+    /// Only index schemas that fully match the constraints will be considered.
+    fn get_best_index_schema(&self, constraints: ConstraintDocument) -> IndexSchema {
+        let query_fields = constraints.keys().collect();
+        let mut best_index_schema = IndexSchema::new(Vec::new());
+
+        for index_schema in self.indices.keys() {
+            // Check if all fields in the index schema appear in the query
+            if index_schema.get_fields().len() == index_schema.get_num_matched_fields(&query_fields) as usize {
+                // Check if we have seen a better index schema before
+                if best_index_schema.get_fields().len() < index_schema.get_fields().len() {
+                    best_index_schema = index_schema.clone();
+                }
+            }
+        }
+
+        best_index_schema
+    }
+
 }
