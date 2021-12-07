@@ -68,13 +68,13 @@ pub enum Projection {
 /// Complete query operation.
 pub struct Query {
     // Constraint document (`WHERE`)
-    constraints: ConstraintDocument,
+    pub constraints: ConstraintDocument,
 
     // Projection document (`SELECT`)
-    projection: ProjectionDocument,
+    pub projection: ProjectionDocument,
 
     // Ordering document (`ORDER BY`)
-    order: Option<Vec<ResultOrder>>,
+    pub order: Option<Vec<ResultOrder>>,
 }
 
 /// Document used in update operations.

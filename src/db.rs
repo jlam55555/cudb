@@ -98,9 +98,10 @@ impl Collection {
         // TODO: Drop index. Right now index isn't stored so no problem.
     }
 
+    // TODO: make this private again
     /// Get the index schema that most closely matches the provided constraints.
     /// Only index schemas that fully match the constraints will be considered.
-    fn get_best_index_schema(&self, constraints: ConstraintDocument) -> Option<&IndexSchema> {
+    pub fn get_best_index_schema(&self, constraints: &ConstraintDocument) -> Option<&IndexSchema> {
         let query_fields = constraints.keys().collect();
 
         // Get the number of matched fields for each index schema
