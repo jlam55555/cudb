@@ -7,10 +7,14 @@ use crate::query::*;
 // TODO: most of these should return Result<T,E> types
 impl Collection {
     /// Insert one document.
-    pub fn insert_one(&self, doc: Document) {}
+    pub fn insert_one(&mut self, doc: Document) {
+        self.get_pool().write_new(doc);
+    }
 
     /// Insert a vector of documents.
-    pub fn insert_many(&self, docs: Vec<Document>) {}
+    pub fn insert_many(&mut self, docs: Vec<Document>) {
+        docs.into_iter().for_each(|doc| self.insert_one(doc));
+    }
 
     /// Fetch at most one document matching the query.
     pub fn find_one(&self, query: Query) -> Option<Document> {
