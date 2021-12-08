@@ -5,9 +5,6 @@ use crate::document::*;
 use crate::index::IndexSchema;
 use crate::query::*;
 
-use std::collections::HashSet;
-use std::iter::FromIterator;
-
 // TODO: most of these should return Result<T,E> types
 impl Collection {
     /// Insert one document.
@@ -29,13 +26,7 @@ impl Collection {
         };
 
         // Get remaining fields that are not part of the index.
-        let constraints: HashSet<&FieldPath> = query.constraints.keys().collect();
-        let index_constraints: HashSet<&FieldPath> =
-            HashSet::from_iter(index_schema.get_fields().iter().clone());
-        let remaining_constraints: Vec<&FieldPath> = constraints
-            .difference(&index_constraints)
-            .map(|x| x.clone())
-            .collect();
+        let remaining_constraints = query.constraints.remove_index_fields(&index_schema);
 
         // TODO: remove
         // dbg!(&index_schema);
@@ -44,9 +35,11 @@ impl Collection {
 
         // Fetch documents that match index.
         // TODO: implement default ID index
-        let docs = if index_schema.get_fields().len() > 0 {
+        let tldocs = if index_schema.get_fields().len() > 0 {
             // Index exists, get records that match index.
             self.get_indices().get(&index_schema);
+
+            // TODO: convert index to b-tree ranges
 
             // TODO: remove; placeholder for now
             self.get_pool().scan()
@@ -56,11 +49,10 @@ impl Collection {
         };
 
         // Linearly scan docs and find first matching document.
-        for doc in docs {
-            // TODO: implement ConstraintDocument::matches(document)
-            // if remaining_constraints.matches(doc) {
-            //     return Some(doc.get_doc().clone());
-            // }
+        for mut tldoc in tldocs {
+            if remaining_constraints.matches_document(&mut tldoc.get_doc()) {
+                return Some(tldoc.get_doc().clone());
+            }
         }
 
         // No match.
