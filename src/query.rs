@@ -47,7 +47,7 @@ impl ConstraintDocumentTrait for ConstraintDocument {
         let constraints_set: HashSet<&FieldPath> = self.keys().collect();
         let index_constraints_set: HashSet<&FieldPath> =
             HashSet::from_iter(index_schema.get_fields().iter().clone());
-        let remaining_constraints_vector = constraints_set
+        constraints_set
             .difference(&index_constraints_set)
             .for_each(|field_path| {
                 match self.get(field_path.clone()) {
@@ -62,7 +62,9 @@ impl ConstraintDocumentTrait for ConstraintDocument {
 
     fn matches_document(&self, doc: &Document) -> bool {
         for (field_path, constraint) in self.iter() {
+            // TODO: remove
             dbg!(&field_path, &constraint);
+
             if !constraint.matches(&doc.get(field_path)) {
                 return false;
             }

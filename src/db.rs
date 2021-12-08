@@ -1,10 +1,10 @@
 //! User-facing structural API of database.
 
-use std::collections::{BTreeMap, HashMap, HashSet};
-use std::path::Path;
 use crate::index::{Index, IndexSchema};
 use crate::mmapv1::{block, Pool};
 use crate::query::{ConstraintDocument, FieldPath};
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::path::Path;
 
 /// User API for connection/client-level actions.
 pub struct Client {}
@@ -51,7 +51,12 @@ impl Collection {
     /// Get the collection's underlying pool.
     // TODO: replace usages of this with a Collection-level API,
     // instead of the pool-level API.
-    pub fn get_pool(&mut self) -> &mut Pool {
+    pub fn get_pool(&self) -> &Pool {
+        &self.pool
+    }
+
+    /// Get the collection's underlying pool mutably.
+    pub fn get_mut_pool(&mut self) -> &mut Pool {
         &mut self.pool
     }
 
@@ -75,7 +80,10 @@ impl Collection {
                 b_tree.insert(index.clone(), HashSet::new());
             }
 
-            b_tree.get_mut(&index).unwrap().insert(top_level_doc.get_block().off);
+            b_tree
+                .get_mut(&index)
+                .unwrap()
+                .insert(top_level_doc.get_block().off);
         }
 
         self.indices.insert(index_schema, b_tree);
@@ -107,7 +115,9 @@ impl Collection {
         // Get the number of matched fields for each index schema
         // Keep index schemas if every field inside is in the constraints
         // Get the first index schema with the max matches
-        let best_index_schema = self.indices.keys()
+        let best_index_schema = self
+            .indices
+            .keys()
             .map(|x| (x, x.get_num_matched_fields(&query_fields)))
             .filter(|x| x.0.get_fields().len() == x.1 as usize) // Note that we cast i32 to usize (unsafe vice versa)
             .max_by(|x, y| (*x).1.cmp(&(*y).1))
@@ -115,5 +125,4 @@ impl Collection {
 
         best_index_schema
     }
-
 }

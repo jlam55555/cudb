@@ -9,7 +9,7 @@ use crate::query::*;
 impl Collection {
     /// Insert one document.
     pub fn insert_one(&mut self, doc: Document) {
-        self.get_pool().write_new(doc);
+        self.get_mut_pool().write_new(doc);
     }
 
     /// Insert a vector of documents.
@@ -37,12 +37,21 @@ impl Collection {
         // TODO: implement default ID index
         let tldocs = if index_schema.get_fields().len() > 0 {
             // Index exists, get records that match index.
-            self.get_indices().get(&index_schema);
+            let btree = self.get_indices().get(&index_schema).unwrap();
 
-            // TODO: convert index to b-tree ranges
+            // Convert index to b-tree ranges.
+            let btree_ranges = index_schema.generate_btree_ranges(&query.constraints);
 
-            // TODO: remove; placeholder for now
-            self.get_pool().scan()
+            // Join all ranges.
+            let mut tldocs = Vec::new();
+            for btree_range in btree_ranges {
+                for (_, tldoc_off_set) in btree.range(btree_range) {
+                    for tldoc_off in tldoc_off_set {
+                        tldocs.push(self.get_pool().fetch_block_at_offset(*tldoc_off));
+                    }
+                }
+            }
+            tldocs
         } else {
             // No matching index, get all records.
             self.get_pool().scan()

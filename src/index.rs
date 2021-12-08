@@ -1,9 +1,12 @@
 //! B-tree indexing.
 
-use std::collections::HashSet;
-use crate::query::FieldPath;
 use crate::document::Document;
+use crate::query::ConstraintDocument;
+use crate::query::FieldPath;
 use crate::value::Value;
+
+use std::collections::HashSet;
+use std::ops::Bound;
 
 // TODO: implementing indices/B-trees
 /// Store the fields used for an index.
@@ -14,9 +17,7 @@ pub struct IndexSchema {
 
 impl IndexSchema {
     pub fn new(fields: Vec<FieldPath>) -> IndexSchema {
-        IndexSchema {
-            fields: fields,
-        }
+        IndexSchema { fields: fields }
     }
 
     pub fn get_fields(&self) -> &Vec<FieldPath> {
@@ -49,6 +50,14 @@ impl IndexSchema {
 
         cur_matched
     }
+
+    /// Calculates the non-overlapping b-tree query ranges for a ConstraintDocument.
+    pub fn generate_btree_ranges(
+        &self,
+        constraints: &ConstraintDocument,
+    ) -> Vec<(Bound<Index>, Bound<Index>)> {
+        todo!("working here")
+    }
 }
 
 /// Store the values for the fields for a particular document.
@@ -59,8 +68,6 @@ pub struct Index {
 
 impl Index {
     fn new(values: Vec<Value>) -> Index {
-        Index {
-            values: values,
-        }
+        Index { values: values }
     }
 }

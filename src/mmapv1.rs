@@ -168,7 +168,7 @@ impl Pool {
 
     // Helper function to read block data. See `fetch_block_header` for
     // details about the format of the block header.
-    fn fetch_block_data(&mut self, blk: &block::Block, buf: &mut [u8]) {
+    fn fetch_block_data(&self, blk: &block::Block, buf: &mut [u8]) {
         self.file
             .read_exact_at(buf, blk.off + block::HEADER_SIZE as u64)
             .unwrap();
@@ -231,8 +231,13 @@ impl Pool {
         blk
     }
 
+    /// Fetch a top level document from a block offset, reading the header.
+    pub fn fetch_block_at_offset(&self, off: block::Offset) -> TopLevelDocument {
+        self.fetch(&self.fetch_block_header(off))
+    }
+
     /// Fetch a top level document from a block address, ignoring the header.
-    pub fn fetch(&mut self, blk: &block::Block) -> TopLevelDocument {
+    pub fn fetch(&self, blk: &block::Block) -> TopLevelDocument {
         let mut buf = vec![0u8; blk.len];
         self.fetch_block_data(&blk, &mut buf);
 
@@ -272,7 +277,7 @@ impl Pool {
 
     /// Linearly scan and retrieve all documents from the pool.
     // TODO: convert the result into a stream for efficiency
-    pub fn scan(&mut self) -> Vec<TopLevelDocument> {
+    pub fn scan(&self) -> Vec<TopLevelDocument> {
         let mut cur_pos: block::Offset = 0;
         let mut tldocs = Vec::new();
 
