@@ -61,6 +61,13 @@ impl ConstraintDocumentTrait for ConstraintDocument {
     }
 
     fn matches_document(&self, doc: &Document) -> bool {
+        for (field_path, constraint) in self.iter() {
+            dbg!(&field_path, &constraint);
+            if !constraint.matches(&doc.get(field_path)) {
+                return false;
+            }
+        }
+
         true
     }
 }
@@ -69,7 +76,7 @@ impl ConstraintDocumentTrait for ConstraintDocument {
 ///
 /// Note that Constraints applied to an array
 /// value will map the constraint over the array.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Constraint {
     /// Constraints on subdocuments (hashtables).
     MatchesDocument(ConstraintDocument),
@@ -88,6 +95,21 @@ pub enum Constraint {
 
     /// Conjunction of constraints on a single field.
     And(Box<Constraint>, Box<Constraint>),
+}
+
+impl Constraint {
+    /// Whether a Value matches a constraint.
+    pub fn matches(&self, value: &Value) -> bool {
+        match self {
+            Constraint::Equals(value2) => value == value2,
+            Constraint::LessThan(value2) => value < value2,
+            Constraint::GreaterThan(value2) => value > value2,
+            Constraint::And(constraint1, constraint2) => {
+                constraint1.matches(value) && constraint2.matches(value)
+            }
+            _ => panic!("other constraints not implemented"),
+        }
+    }
 }
 
 /// Projection of fields during a query (analogous to SQL `SELECT`).
