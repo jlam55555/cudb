@@ -4,8 +4,7 @@ use crate::document::Document;
 use crate::index::IndexSchema;
 use crate::value::Value;
 
-use std::collections::{HashMap, HashSet};
-use std::iter::FromIterator;
+use std::collections::HashMap;
 use std::ops::Bound;
 
 /*
@@ -42,23 +41,27 @@ pub trait ConstraintDocumentTrait {
 }
 
 impl ConstraintDocumentTrait for ConstraintDocument {
-    fn remove_index_fields(&self, index_schema: &IndexSchema) -> ConstraintDocument {
-        let mut reduced_constraints = HashMap::new();
+    fn remove_index_fields(&self, _index_schema: &IndexSchema) -> ConstraintDocument {
+        // For the time being, don't remove index fields, due to the issue with
+        // inclusive/exclusive bounds.
+        self.clone()
 
-        let constraints_set: HashSet<&FieldPath> = self.keys().collect();
-        let index_constraints_set: HashSet<&FieldPath> =
-            HashSet::from_iter(index_schema.get_fields().iter().clone());
-        constraints_set
-            .difference(&index_constraints_set)
-            .for_each(|field_path| {
-                match self.get(field_path.clone()) {
-                    None => panic!("missing field path"),
-                    Some(constraint) => {
-                        reduced_constraints.insert(field_path.clone().clone(), constraint.clone())
-                    }
-                };
-            });
-        reduced_constraints
+        // let mut reduced_constraints = HashMap::new();
+
+        // let constraints_set: HashSet<&FieldPath> = self.keys().collect();
+        // let index_constraints_set: HashSet<&FieldPath> =
+        //     HashSet::from_iter(index_schema.get_fields().iter().clone());
+        // constraints_set
+        //     .difference(&index_constraints_set)
+        //     .for_each(|field_path| {
+        //         match self.get(field_path.clone()) {
+        //             None => panic!("missing field path"),
+        //             Some(constraint) => {
+        //                 reduced_constraints.insert(field_path.clone().clone(), constraint.clone())
+        //             }
+        //         };
+        //     });
+        // reduced_constraints
     }
 
     fn matches_document(&self, doc: &Document) -> bool {
