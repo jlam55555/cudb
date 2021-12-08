@@ -125,8 +125,55 @@ impl Constraint {
     }
 
     /// Generate the value range(s) for this constraint.
+    ///
+    /// Note: for the time being, this generates inclusive ranges only, because
+    /// we cannot mix inclusive and exclusive ranges in a multi-field index.
+    /// Note that since we also cannot mix unbounded ranges, one-sided ranges
+    /// (such as inequalities) use a predefined min/max value. For unbounded numbers,
+    /// this limits the range of valid numbers that can be returned with a range.
+    /// This can be considered a "feature" of our implementation due to the limitations
+    /// of using the builtin BTreeMap implementation.
+    ///
+    /// Note: disjunction (OR) operator assumes ranges are non-overlapping.
     pub fn generate_value_ranges(&self) -> Vec<(Bound<Value>, Bound<Value>)> {
-        todo!();
+        match self {
+            Constraint::Equals(value) => vec![(
+                Bound::Included(value.clone()),
+                Bound::Included(value.clone()),
+            )],
+            Constraint::LessThan(value) => vec![(
+                Bound::Included(value.get_min_value()),
+                Bound::Included(value.clone()),
+            )],
+            Constraint::GreaterThan(value) => vec![(
+                Bound::Included(value.clone()),
+                Bound::Included(value.get_max_value()),
+            )],
+
+            // Conjunction: Combines each pair of ranges.
+            Constraint::And(constraint1, constraint2) => {
+                let value_ranges1 = constraint1.generate_value_ranges();
+                let value_ranges2 = constraint2.generate_value_ranges();
+
+                let value_ranges = Vec::new();
+                for value_range1 in &value_ranges1 {
+                    for value_range2 in &value_ranges2 {
+                        // Combine range if overlapping.
+                        todo!()
+                    }
+                }
+                value_ranges
+            }
+
+            // Disjunction: Returns separate ranges. Assumes non-overlapping.
+            Constraint::Or(constraint1, constraint2) => {
+                let mut value_ranges = constraint1.generate_value_ranges();
+                value_ranges.append(&mut constraint2.generate_value_ranges());
+                value_ranges
+            }
+
+            _ => panic!("unsupported range type"),
+        }
     }
 }
 

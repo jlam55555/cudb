@@ -19,6 +19,34 @@ pub enum Value {
     Array(Vec<Value>),
 }
 
+impl Value {
+    /// Returns inclusive minimum for range search on value.
+    ///
+    /// See Constraint::generate_value_ranges() for more details.
+    pub fn get_min_value(&self) -> Self {
+        match self {
+            Self::Int32(_) => Self::Int32(std::i32::MIN),
+            Self::String(_) => Self::String("".to_string()),
+            _ => panic!("uncomparable type"),
+        }
+    }
+
+    /// Returns inclusive maximum for range search on value.
+    ///
+    /// See Constraint::generate_value_ranges() for more details.
+    ///
+    /// Note that this imposes an arbitrary maximum limit for unbounded values, such as strings.
+    pub fn get_max_value(&self) -> Self {
+        match self {
+            Self::Int32(_) => Self::Int32(std::i32::MAX),
+            Self::String(_) => {
+                Self::String((0..32).map(|_| std::char::from_u32(255).unwrap()).collect())
+            }
+            _ => panic!("uncomparable type"),
+        }
+    }
+}
+
 impl PartialOrd<Self> for Value {
     /// We can only compare like scalar types (i.e., not documents nor arrays).
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
