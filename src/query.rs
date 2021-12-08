@@ -6,6 +6,7 @@ use crate::value::Value;
 
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
+use std::ops::Bound;
 
 /*
 /// Representations of a (possibly nested) document field.
@@ -121,6 +122,11 @@ impl Constraint {
             }
             Constraint::In(values) => values.iter().any(|value2| value == value2),
         }
+    }
+
+    /// Generate the value range(s) for this constraint.
+    pub fn generate_value_ranges(&self) -> Vec<(Bound<Value>, Bound<Value>)> {
+        todo!();
     }
 }
 

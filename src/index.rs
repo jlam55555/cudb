@@ -56,7 +56,18 @@ impl IndexSchema {
         &self,
         constraints: &ConstraintDocument,
     ) -> Vec<(Bound<Index>, Bound<Index>)> {
-        todo!("working here")
+        // Loop through each field of Index, in order.
+        // Convert each constraint to a range or set of ranges on that field.
+        let field_ranges = self
+            .get_fields()
+            .iter()
+            .map(|field_path| constraints.get(field_path).unwrap().generate_value_ranges());
+
+        // TODO: Generate all combinations of one range from each field.
+        todo!();
+
+        // TODO: How to deal with mixed bounds?
+        todo!();
     }
 }
 
