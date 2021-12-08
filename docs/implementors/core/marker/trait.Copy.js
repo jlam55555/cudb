@@ -1,3 +1,3 @@
 (function() {var implementors = {};
-implementors["cudb"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html\" title=\"trait core::marker::Copy\">Copy</a> for <a class=\"struct\" href=\"cudb/mmapv1/block/struct.Block.html\" title=\"struct cudb::mmapv1::block::Block\">Block</a>","synthetic":false,"types":["cudb::mmapv1::block::Block"]}];
+implementors["cudb"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.55.0/core/marker/trait.Copy.html\" title=\"trait core::marker::Copy\">Copy</a> for <a class=\"struct\" href=\"cudb/mmapv1/block/struct.Block.html\" title=\"struct cudb::mmapv1::block::Block\">Block</a>","synthetic":false,"types":["cudb::mmapv1::block::Block"]}];
 if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

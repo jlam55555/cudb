@@ -1,7 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/crud.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>crud.rs - source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings"></script><script src="../../storage.js"></script><script src="../../crates.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg">
-<link rel="alternate icon" type="image/png" href="../../favicon-16x16.png">
-<link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../../cudb/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../../brush.svg" width="18" height="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" class="help-button">?</button>
-                <a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" height="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1"> 1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src&#x2F;crud.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>crud.rs - source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings" ></script><script src="../../storage.js"></script><script src="../../crates.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg"><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../../cudb/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu" title="themes"><img width="18" height="18" alt="Pick another theme!" src="../../brush.svg"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input"name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" id="help-button" title="help">?</button><a id="settings-menu" href="../../settings.html" title="settings"><img width="18" height="18" alt="Change settings" src="../../wheel.svg"></a></div></form></nav><section id="main" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1"> 1</span>
 <span id="2"> 2</span>
 <span id="3"> 3</span>
 <span id="4"> 4</span>
@@ -40,46 +37,149 @@
 <span id="37">37</span>
 <span id="38">38</span>
 <span id="39">39</span>
-</pre><div class="example-wrap"><pre class="rust ">
+<span id="40">40</span>
+<span id="41">41</span>
+<span id="42">42</span>
+<span id="43">43</span>
+<span id="44">44</span>
+<span id="45">45</span>
+<span id="46">46</span>
+<span id="47">47</span>
+<span id="48">48</span>
+<span id="49">49</span>
+<span id="50">50</span>
+<span id="51">51</span>
+<span id="52">52</span>
+<span id="53">53</span>
+<span id="54">54</span>
+<span id="55">55</span>
+<span id="56">56</span>
+<span id="57">57</span>
+<span id="58">58</span>
+<span id="59">59</span>
+<span id="60">60</span>
+<span id="61">61</span>
+<span id="62">62</span>
+<span id="63">63</span>
+<span id="64">64</span>
+<span id="65">65</span>
+<span id="66">66</span>
+<span id="67">67</span>
+<span id="68">68</span>
+<span id="69">69</span>
+<span id="70">70</span>
+<span id="71">71</span>
+<span id="72">72</span>
+<span id="73">73</span>
+<span id="74">74</span>
+<span id="75">75</span>
+<span id="76">76</span>
+<span id="77">77</span>
+<span id="78">78</span>
+<span id="79">79</span>
+<span id="80">80</span>
+<span id="81">81</span>
+<span id="82">82</span>
+<span id="83">83</span>
+<span id="84">84</span>
+<span id="85">85</span>
+<span id="86">86</span>
+<span id="87">87</span>
+<span id="88">88</span>
+<span id="89">89</span>
+<span id="90">90</span>
+</pre><pre class="rust">
 <span class="doccomment">//! User-facing API for collection-level CRUD operations.</span>
 
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::db</span>::<span class="kw-2">*</span>;
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::document</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::index::IndexSchema</span>;
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::query</span>::<span class="kw-2">*</span>;
 
 <span class="comment">// TODO: most of these should return Result&lt;T,E&gt; types</span>
 <span class="kw">impl</span> <span class="ident">Collection</span> {
     <span class="doccomment">/// Insert one document.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">insert_one</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">doc</span>: <span class="ident">Document</span>) {}
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">insert_one</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">doc</span>: <span class="ident">Document</span>) {
+        <span class="self">self</span>.<span class="ident">get_mut_pool</span>().<span class="ident">write_new</span>(<span class="ident">doc</span>);
+    }
 
     <span class="doccomment">/// Insert a vector of documents.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">insert_many</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">docs</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Document</span><span class="op">&gt;</span>) {}
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">insert_many</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">docs</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Document</span><span class="op">&gt;</span>) {
+        <span class="ident">docs</span>.<span class="ident">into_iter</span>().<span class="ident">for_each</span>(<span class="op">|</span><span class="ident">doc</span><span class="op">|</span> <span class="self">self</span>.<span class="ident">insert_one</span>(<span class="ident">doc</span>));
+    }
 
     <span class="doccomment">/// Fetch at most one document matching the query.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">find_one</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">query</span>: <span class="ident">Query</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Document</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Some</span>(<span class="ident">Document::new</span>())
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">find_one</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">query</span>: <span class="ident">Query</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Document</span><span class="op">&gt;</span> {
+        <span class="comment">// Get best matching index schema, or an empty index schema otherwise.</span>
+        <span class="kw">let</span> <span class="ident">index_schema</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">get_best_index_schema</span>(<span class="kw-2">&amp;</span><span class="ident">query</span>.<span class="ident">constraints</span>) {
+            <span class="prelude-val">Some</span>(<span class="ident">index_schema</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">index_schema</span>.<span class="ident">clone</span>(),
+            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">IndexSchema::new</span>(<span class="macro">vec!</span>[]),
+        };
+
+        <span class="comment">// Get remaining fields that are not part of the index.</span>
+        <span class="kw">let</span> <span class="ident">remaining_constraints</span> <span class="op">=</span> <span class="ident">query</span>.<span class="ident">constraints</span>.<span class="ident">remove_index_fields</span>(<span class="kw-2">&amp;</span><span class="ident">index_schema</span>);
+
+        <span class="comment">// TODO: remove</span>
+        <span class="macro">dbg!</span>(<span class="kw-2">&amp;</span><span class="ident">index_schema</span>);
+        <span class="macro">dbg!</span>(<span class="kw-2">&amp;</span><span class="ident">query</span>.<span class="ident">constraints</span>);
+        <span class="macro">dbg!</span>(<span class="kw-2">&amp;</span><span class="ident">remaining_constraints</span>);
+
+        <span class="comment">// Fetch documents that match index.</span>
+        <span class="comment">// TODO: implement default ID index</span>
+        <span class="kw">let</span> <span class="ident">tldocs</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">index_schema</span>.<span class="ident">get_fields</span>().<span class="ident">len</span>() <span class="op">&gt;</span> <span class="number">0</span> {
+            <span class="comment">// Index exists, get records that match index.</span>
+            <span class="kw">let</span> <span class="ident">btree</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">get_indices</span>().<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">index_schema</span>).<span class="ident">unwrap</span>();
+
+            <span class="comment">// Convert index to b-tree ranges.</span>
+            <span class="kw">let</span> <span class="ident">btree_ranges</span> <span class="op">=</span> <span class="ident">index_schema</span>.<span class="ident">generate_btree_ranges</span>(<span class="kw-2">&amp;</span><span class="ident">query</span>.<span class="ident">constraints</span>);
+
+            <span class="comment">// Join all ranges.</span>
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">tldocs</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
+            <span class="kw">for</span> <span class="ident">btree_range</span> <span class="kw">in</span> <span class="ident">btree_ranges</span> {
+                <span class="kw">for</span> (<span class="kw">_</span>, <span class="ident">tldoc_off_set</span>) <span class="kw">in</span> <span class="ident">btree</span>.<span class="ident">range</span>(<span class="ident">btree_range</span>) {
+                    <span class="kw">for</span> <span class="ident">tldoc_off</span> <span class="kw">in</span> <span class="ident">tldoc_off_set</span> {
+                        <span class="ident">tldocs</span>.<span class="ident">push</span>(<span class="self">self</span>.<span class="ident">get_pool</span>().<span class="ident">fetch_block_at_offset</span>(<span class="kw-2">*</span><span class="ident">tldoc_off</span>));
+                    }
+                }
+            }
+            <span class="ident">tldocs</span>
+        } <span class="kw">else</span> {
+            <span class="comment">// No matching index, get all records.</span>
+            <span class="self">self</span>.<span class="ident">get_pool</span>().<span class="ident">scan</span>()
+        };
+
+        <span class="comment">// Linearly scan docs and find first matching document.</span>
+        <span class="kw">for</span> <span class="kw-2">mut</span> <span class="ident">tldoc</span> <span class="kw">in</span> <span class="ident">tldocs</span> {
+            <span class="kw">if</span> <span class="ident">remaining_constraints</span>.<span class="ident">matches_document</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">tldoc</span>.<span class="ident">get_doc</span>()) {
+                <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">tldoc</span>.<span class="ident">get_doc</span>().<span class="ident">clone</span>());
+            }
+        }
+
+        <span class="comment">// No match.</span>
+        <span class="prelude-val">None</span>
     }
 
     <span class="doccomment">/// Fetch a vector of documents matching the query.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">find_many</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">query</span>: <span class="ident">Query</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Document</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">find_many</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">_query</span>: <span class="ident">Query</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Document</span><span class="op">&gt;</span> {
         <span class="ident">Vec::new</span>()
     }
 
     <span class="doccomment">/// Update at most one document that matches the query.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">update_one</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">query</span>: <span class="ident">ConstraintDocument</span>, <span class="ident">update</span>: <span class="ident">UpdateDocument</span>) {}
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">update_one</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">_query</span>: <span class="ident">ConstraintDocument</span>, <span class="ident">_update</span>: <span class="ident">UpdateDocument</span>) {}
 
     <span class="doccomment">/// Update all documents matching the query.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">update_many</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">query</span>: <span class="ident">ConstraintDocument</span>, <span class="ident">update</span>: <span class="ident">UpdateDocument</span>) {}
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">update_many</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">_query</span>: <span class="ident">ConstraintDocument</span>, <span class="ident">_update</span>: <span class="ident">UpdateDocument</span>) {}
 
     <span class="doccomment">/// Replace at most one document that matches the query.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">replace_one</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">query</span>: <span class="ident">ConstraintDocument</span>, <span class="ident">replace</span>: <span class="ident">Document</span>) {}
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">replace_one</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">_query</span>: <span class="ident">ConstraintDocument</span>, <span class="ident">_replace</span>: <span class="ident">Document</span>) {}
 
     <span class="doccomment">/// Delete at most one document that matches the query.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">delete_one</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">query</span>: <span class="ident">ConstraintDocument</span>) {}
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">delete_one</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">_query</span>: <span class="ident">ConstraintDocument</span>) {}
 
     <span class="doccomment">/// Delete all documents that match the query.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">delete_many</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">query</span>: <span class="ident">ConstraintDocument</span>) {}
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">delete_many</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">_query</span>: <span class="ident">ConstraintDocument</span>) {}
 }
 </pre></div>
 </section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="cudb" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div>
-    <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script></body></html>
+    <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script>
+</body></html>
