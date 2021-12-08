@@ -29,9 +29,9 @@ impl Collection {
         let remaining_constraints = query.constraints.remove_index_fields(&index_schema);
 
         // TODO: remove
-        // dbg!(&index_schema);
-        // dbg!(&constraints);
-        // dbg!(&remaining_constraints);
+        dbg!(&index_schema);
+        dbg!(&query.constraints);
+        dbg!(&remaining_constraints);
 
         // Fetch documents that match index.
         // TODO: implement default ID index
@@ -60,22 +60,22 @@ impl Collection {
     }
 
     /// Fetch a vector of documents matching the query.
-    pub fn find_many(&self, query: Query) -> Vec<Document> {
+    pub fn find_many(&self, _query: Query) -> Vec<Document> {
         Vec::new()
     }
 
     /// Update at most one document that matches the query.
-    pub fn update_one(&self, query: ConstraintDocument, update: UpdateDocument) {}
+    pub fn update_one(&self, _query: ConstraintDocument, _update: UpdateDocument) {}
 
     /// Update all documents matching the query.
-    pub fn update_many(&self, query: ConstraintDocument, update: UpdateDocument) {}
+    pub fn update_many(&self, _query: ConstraintDocument, _update: UpdateDocument) {}
 
     /// Replace at most one document that matches the query.
-    pub fn replace_one(&self, query: ConstraintDocument, replace: Document) {}
+    pub fn replace_one(&self, _query: ConstraintDocument, _replace: Document) {}
 
     /// Delete at most one document that matches the query.
-    pub fn delete_one(&self, query: ConstraintDocument) {}
+    pub fn delete_one(&self, _query: ConstraintDocument) {}
 
     /// Delete all documents that match the query.
-    pub fn delete_many(&self, query: ConstraintDocument) {}
+    pub fn delete_many(&self, _query: ConstraintDocument) {}
 }
