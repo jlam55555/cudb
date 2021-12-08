@@ -33,9 +33,8 @@ impl Value {
 
     /// Returns inclusive maximum for range search on value.
     ///
-    /// See Constraint::generate_value_ranges() for more details.
-    ///
-    /// Note that this imposes an arbitrary maximum limit for unbounded values, such as strings.
+    /// See Constraint::generate_value_ranges() for more details. Note that this imposes an
+    /// arbitrary maximum limit for unbounded values, such as strings.
     pub fn get_max_value(&self) -> Self {
         match self {
             Self::Int32(_) => Self::Int32(std::i32::MAX),

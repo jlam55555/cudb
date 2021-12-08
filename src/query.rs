@@ -132,7 +132,10 @@ impl Constraint {
     /// (such as inequalities) use a predefined min/max value. For unbounded numbers,
     /// this limits the range of valid numbers that can be returned with a range.
     /// This can be considered a "feature" of our implementation due to the limitations
-    /// of using the builtin BTreeMap implementation.
+    /// of using the builtin BTreeMap implementation. An alternative implementation
+    /// is to create a special value type that represents the extrema of a type
+    /// (which would probably be a cleaner and more robust solution if only I had
+    /// thought of it earlier).
     ///
     /// Note: disjunction (OR) operator assumes ranges are non-overlapping.
     pub fn generate_value_ranges(&self) -> Vec<(Bound<Value>, Bound<Value>)> {
@@ -155,11 +158,34 @@ impl Constraint {
                 let value_ranges1 = constraint1.generate_value_ranges();
                 let value_ranges2 = constraint2.generate_value_ranges();
 
-                let value_ranges = Vec::new();
-                for value_range1 in &value_ranges1 {
-                    for value_range2 in &value_ranges2 {
+                let mut value_ranges = Vec::new();
+                for (value_range1_min, value_range1_max) in &value_ranges1 {
+                    for (value_range2_min, value_range2_max) in &value_ranges2 {
+                        // Assert that range bounds are inclusive.
+                        let (min1, max1, min2, max2) = match (
+                            value_range1_min,
+                            value_range1_max,
+                            value_range2_min,
+                            value_range2_max,
+                        ) {
+                            (
+                                Bound::Included(min1),
+                                Bound::Included(max1),
+                                Bound::Included(min2),
+                                Bound::Included(max2),
+                            ) => (min1, max1, min2, max2),
+                            _ => panic!("non-inclusive bounds"),
+                        };
+
                         // Combine range if overlapping.
-                        todo!()
+                        let (range_min, range_max) =
+                            (std::cmp::max(min1, min2), std::cmp::min(max1, max2));
+                        if range_max > range_min {
+                            value_ranges.push((
+                                Bound::Included(range_min.clone()),
+                                Bound::Included(range_max.clone()),
+                            ));
+                        }
                     }
                 }
                 value_ranges
