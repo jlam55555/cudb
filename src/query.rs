@@ -104,6 +104,10 @@ impl Constraint {
     /// Whether a Value matches a constraint.
     pub fn matches(&self, value: &Value) -> bool {
         match self {
+            Constraint::MatchesDocument(constraint_doc) => match value {
+                Value::Dict(doc) => constraint_doc.matches_document(doc),
+                _ => false,
+            },
             Constraint::Equals(value2) => value == value2,
             Constraint::LessThan(value2) => value < value2,
             Constraint::GreaterThan(value2) => value > value2,
@@ -113,8 +117,7 @@ impl Constraint {
             Constraint::Or(constraint1, constraint2) => {
                 constraint1.matches(value) || constraint2.matches(value)
             }
-
-            _ => panic!("other constraints not implemented"),
+            Constraint::In(values) => values.iter().any(|value2| value == value2),
         }
     }
 }
