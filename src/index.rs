@@ -61,13 +61,60 @@ impl IndexSchema {
         let field_ranges = self
             .get_fields()
             .iter()
-            .map(|field_path| constraints.get(field_path).unwrap().generate_value_ranges());
+            .map(|field_path| constraints.get(field_path).unwrap().generate_value_ranges())
+            .collect();
 
-        // TODO: Generate all combinations of one range from each field.
-        todo!();
+        // Generate all combinations of one range from each field.
+        // TODO: Deal with mixed bounds (equality and inequality).
+        Self::generate_combinations(&field_ranges, 0)
+    }
 
-        // TODO: How to deal with mixed bounds?
-        todo!();
+    // Helper function to generate combinations for generarte_btree_ranges.
+    // TOOD: test this function.
+    fn generate_combinations(
+        field_ranges: &Vec<Vec<(Bound<Value>, Bound<Value>)>>,
+        i: usize,
+    ) -> Vec<(Bound<Index>, Bound<Index>)> {
+        if i == field_ranges.len() {
+            return Vec::new();
+        }
+
+        let next_combinations_indices = Self::generate_combinations(field_ranges, i + 1);
+        let next_combinations =
+            next_combinations_indices
+                .iter()
+                .map(|index_range| match index_range {
+                    (Bound::Included(index_range_low), Bound::Included(index_range_high)) => {
+                        (index_range_low.get_values(), index_range_high.get_values())
+                    }
+                    _ => panic!("invalid index range"),
+                });
+
+        let mut combinations = Vec::new();
+        for (value_low, value_high) in &field_ranges[i] {
+            // For now, assert these bounds are inclusive.
+            let (value_low, value_high) = match (value_low, value_high) {
+                (Bound::Included(value_low), Bound::Included(value_high)) => {
+                    (value_low, value_high)
+                }
+                _ => panic!("non-inclusive value ranges"),
+            };
+
+            for (next_range_low, next_range_high) in next_combinations.clone() {
+                // Create new range ((value_low:next_range_low), (value_high:next_range_high)).
+                let mut low_range = vec![value_low.clone()];
+                low_range.append(&mut next_range_low.clone());
+
+                let mut high_range = vec![value_high.clone()];
+                high_range.append(&mut next_range_high.clone());
+
+                combinations.push((
+                    Bound::Included(Index::new(low_range)),
+                    Bound::Included(Index::new(high_range)),
+                ));
+            }
+        }
+        combinations
     }
 }
 
@@ -80,5 +127,9 @@ pub struct Index {
 impl Index {
     fn new(values: Vec<Value>) -> Index {
         Index { values: values }
+    }
+
+    fn get_values(&self) -> &Vec<Value> {
+        &self.values
     }
 }
