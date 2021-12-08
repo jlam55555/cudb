@@ -93,6 +93,9 @@ pub enum Constraint {
     /// Constraint if value is in specified list of values.
     In(Vec<Value>),
 
+    /// Disjunction of constraints on a single field.
+    Or(Box<Constraint>, Box<Constraint>),
+
     /// Conjunction of constraints on a single field.
     And(Box<Constraint>, Box<Constraint>),
 }
@@ -107,6 +110,10 @@ impl Constraint {
             Constraint::And(constraint1, constraint2) => {
                 constraint1.matches(value) && constraint2.matches(value)
             }
+            Constraint::Or(constraint1, constraint2) => {
+                constraint1.matches(value) || constraint2.matches(value)
+            }
+
             _ => panic!("other constraints not implemented"),
         }
     }
