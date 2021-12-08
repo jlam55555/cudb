@@ -25,7 +25,7 @@ impl PartialOrd<Self> for Value {
         match (self, other) {
             (Self::Id(i1), Self::Id(i2)) => i1.partial_cmp(i2),
             (Self::Int32(i1), Self::Int32(i2)) => i1.partial_cmp(i2),
-            (Self::String(s1), Self::String(s2)) => s2.partial_cmp(s2),
+            (Self::String(s1), Self::String(s2)) => s1.partial_cmp(s2),
             _ => None,
         }
     }
