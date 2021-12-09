@@ -50,7 +50,7 @@ impl Collection {
 
     /// Get the collection's underlying pool.
     // TODO: replace usages of this with a Collection-level API,
-    // instead of the pool-level API.
+    //       instead of the pool-level API.
     pub fn get_pool(&self) -> &Pool {
         &self.pool
     }
@@ -76,6 +76,8 @@ impl Collection {
             // Create the index for the document
             let index = index_schema.create_index_instance(doc);
 
+            // ToDo: We can remove this if statement if we use a unique auto-generated id value
+            //       for each document
             if !b_tree.contains_key(&index) {
                 b_tree.insert(index.clone(), HashSet::new());
             }
