@@ -121,7 +121,7 @@ impl Collection {
             .indices
             .keys()
             .map(|x| (x, x.get_num_matched_fields(&query_fields)))
-            .filter(|x| x.0.get_fields().len() == x.1 as usize) // Note that we cast i32 to usize (unsafe vice versa)
+            .filter(|x| x.0.get_fields().len() == x.1 as usize) // Note that we cast i32 to usize (vice versa is unsafe)
             .max_by(|x, y| (*x).1.cmp(&(*y).1))
             .map(|x| x.0);
 
