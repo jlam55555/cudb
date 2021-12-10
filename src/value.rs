@@ -20,6 +20,13 @@ pub enum Value {
 }
 
 impl Value {
+    /// Check if the provided Value is the same variant as the current Value.
+    /// A variant is a component of an enum.
+    /// Based on: https://stackoverflow.com/a/32554326
+    pub fn is_variant_equal(&self, val: &Value) -> bool {
+        std::mem::discriminant(self) == std::mem::discriminant(val)
+    }
+
     /// Returns inclusive minimum for range search on value.
     ///
     /// See Constraint::generate_value_ranges() for more details.

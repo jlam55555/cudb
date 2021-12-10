@@ -17,7 +17,7 @@ pub mod tests {
         // Visually check that the documents and indices are created correctly
         for doc in utils::sample_documents(5) {
             println!("Inserting document: {:#?}", doc);
-            col.get_pool().write_new(doc);
+            col.get_mut_pool().write_new(doc);
         }
 
         col.create_index(vec![vec![String::from("key")]]);
