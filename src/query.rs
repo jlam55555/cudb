@@ -64,13 +64,20 @@ impl ConstraintDocumentTrait for ConstraintDocument {
         // reduced_constraints
     }
 
+    /// Check if a document matches the constraints. If a document is missing a value,
+    /// it automatically doesn't match the constraint.
     fn matches_document(&self, doc: &Document) -> bool {
-        for (field_path, constraint) in self.iter() {
+        for (path, constraint) in self.iter() {
             // TODO: remove
-            dbg!(&field_path, &constraint);
+            dbg!(&path, &constraint);
 
-            if !constraint.matches(&doc.get(field_path)) {
-                return false;
+            match doc.get(path) {
+                Some(value) => {
+                    if !constraint.matches(&value) {
+                        return false;
+                    }
+                }
+                None => return false,
             }
         }
 

@@ -11,16 +11,24 @@ use std::ops::Bound;
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct FieldSpec {
     field_path: FieldPath,
-    field_type: Value,
+    default: Value,
 }
 
 /// Store the field path and default value used for a field.
 impl FieldSpec {
-    pub fn new(field_path: FieldPath, field_type: Value) -> FieldSpec {
+    pub fn new(field_path: FieldPath, default: Value) -> FieldSpec {
         FieldSpec {
             field_path: field_path,
-            field_type: field_type,
+            default: default,
         }
+    }
+
+    pub fn get_field_path(&self) -> &FieldPath {
+        &self.field_path
+    }
+
+    pub fn get_default(&self) -> &Value {
+        &self.default
     }
 }
 
@@ -42,13 +50,19 @@ impl IndexSchema {
             .collect()
     }
 
-    // ToDo: Support default values here?
+    pub fn get_field_specs(&self) -> &Vec<FieldSpec> {
+        &self.fields
+    }
+
     /// Create an IndexInstance from the provided document.
     pub fn create_index_instance(&self, doc: &Document) -> Index {
         // Extract the values from the document
         let mut values = Vec::new();
-        for ind in self.get_fields() {
-            values.push(doc.get(&ind));
+        for spec in self.get_field_specs() {
+            values.push(doc.get_or_default(
+                spec.get_field_path(),
+                spec.get_default().clone()
+            ));
         }
 
         Index::new(values)
