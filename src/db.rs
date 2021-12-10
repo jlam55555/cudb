@@ -1,8 +1,8 @@
 //! User-facing structural API of database.
 
-use crate::index::{Index, IndexSchema};
+use crate::index::{FieldSpec, Index, IndexSchema};
 use crate::mmapv1::{block, Pool};
-use crate::query::{ConstraintDocument, FieldPath};
+use crate::query::{ConstraintDocument};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::Path;
 
@@ -63,7 +63,7 @@ impl Collection {
     /// Create a B-tree index on a list of fields in the collection.
     // TODO: make sure the field exists on all documents, or assign default value.
     //       i.e., `Document::get()` should not panic! if key does not exist
-    pub fn create_index(&mut self, ind_names: Vec<FieldPath>) {
+    pub fn create_index(&mut self, ind_names: Vec<FieldSpec>) {
         let index_schema = IndexSchema::new(ind_names);
 
         // ToDo: Make get_const_doc()

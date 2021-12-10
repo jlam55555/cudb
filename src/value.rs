@@ -3,6 +3,7 @@
 use crate::document::*;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
+use std::hash::{Hash, Hasher};
 
 /// Variant type for (data) document values.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -72,6 +73,19 @@ impl Ord for Value {
         match self.partial_cmp(other) {
             Some(ord) => ord,
             None => panic!("invalid value comparison"),
+        }
+    }
+}
+
+impl Hash for Value {
+    /// We do not allow indexing by a Document. Panics if a document is used.
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            Self::Id(id) => id.hash(state),
+            Self::Int32(i) => i.hash(state),
+            Self::String(str) => str.hash(state),
+            Self::Array(arr) => arr.hash(state),
+            _ => panic!("trying to hash a document"),
         }
     }
 }

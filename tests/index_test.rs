@@ -1,6 +1,8 @@
 // Test cases for indices.
 
 use cudb::db::Collection;
+use cudb::index::FieldSpec;
+use cudb::value::Value;
 
 #[path = "./utils.rs"]
 mod utils;
@@ -20,8 +22,12 @@ pub mod tests {
             col.get_mut_pool().write_new(doc);
         }
 
-        col.create_index(vec![vec![String::from("key")]]);
-        col.create_index(vec![vec![String::from("y")]]);
+        col.create_index(vec![
+            FieldSpec::new(vec![String::from("key")], Value::Int32(0)),
+        ]);
+        col.create_index(vec![
+            FieldSpec::new(vec![String::from("y")], Value::String(String::from(""))),
+        ]);
 
         println!("Indices: {:#?}", col.get_indices());
 

@@ -8,20 +8,38 @@ use crate::value::Value;
 use std::collections::HashSet;
 use std::ops::Bound;
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct FieldSpec {
+    field_path: FieldPath,
+    field_type: Value,
+}
+
+/// Store the field path and default value used for a field.
+impl FieldSpec {
+    pub fn new(field_path: FieldPath, field_type: Value) -> FieldSpec {
+        FieldSpec {
+            field_path: field_path,
+            field_type: field_type,
+        }
+    }
+}
+
 // TODO: implementing indices/B-trees
 /// Store the fields used for an index.
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct IndexSchema {
-    fields: Vec<FieldPath>,
+    fields: Vec<FieldSpec>,
 }
 
 impl IndexSchema {
-    pub fn new(fields: Vec<FieldPath>) -> IndexSchema {
+    pub fn new(fields: Vec<FieldSpec>) -> IndexSchema {
         IndexSchema { fields: fields }
     }
 
-    pub fn get_fields(&self) -> &Vec<FieldPath> {
-        &self.fields
+    pub fn get_fields(&self) -> Vec<FieldPath> {
+        self.fields.iter()
+            .map(|x| x.field_path.clone())
+            .collect()
     }
 
     // ToDo: Support default values here?
@@ -30,7 +48,7 @@ impl IndexSchema {
         // Extract the values from the document
         let mut values = Vec::new();
         for ind in self.get_fields() {
-            values.push(doc.get(ind));
+            values.push(doc.get(&ind));
         }
 
         Index::new(values)
