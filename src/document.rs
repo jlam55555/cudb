@@ -26,7 +26,7 @@ impl Document {
         Document { elems: map }
     }
 
-    // Retrieve the value given the path if it exists.
+    /// Retrieve the value given the path if it exists.
     pub fn get(&self, path: &FieldPath) -> Option<Value> {
         let mut temp_elems = &self.elems;
 
