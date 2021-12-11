@@ -38,6 +38,10 @@ impl TopLevelDocument {
     pub fn get_doc(&mut self) -> &mut Document {
         &mut self.doc
     }
+
+    pub fn get_const_doc(&self) -> &Document {
+        &self.doc
+    }
 }
 
 /// Represents a memory block: offset and size.

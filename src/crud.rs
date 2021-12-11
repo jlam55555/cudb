@@ -3,18 +3,24 @@
 use crate::db::Collection;
 use crate::document::Document;
 use crate::index::IndexSchema;
+use crate::mmapv1::TopLevelDocument;
 use crate::query::{ConstraintDocument, ConstraintDocumentTrait, Query, UpdateDocument};
 
 // TODO: most of these should return Result<T,E> types
 impl Collection {
+    // TODO: We need offset to insert but we want to check if insert is valid before offset
+    //       Create a function to return the next free offset and change function argument back to Document
     /// Insert one document.
-    pub fn insert_one(&mut self, doc: Document) {
-        self.get_mut_pool().write_new(doc);
+    pub fn insert_one(&mut self, top_level_doc: &TopLevelDocument) {
+        // We try to insert the document to all of the indices first, before we actually write it
+        self.add_document_to_indices(top_level_doc);
+        self.get_mut_pool().write_new(top_level_doc.get_const_doc().clone());
     }
 
     /// Insert a vector of documents.
-    pub fn insert_many(&mut self, docs: Vec<Document>) {
-        docs.into_iter().for_each(|doc| self.insert_one(doc));
+    pub fn insert_many(&mut self, top_level_docs: Vec<&TopLevelDocument>) {
+        top_level_docs.into_iter()
+            .for_each(|doc| self.insert_one(doc));
     }
 
     /// Fetch at most one document matching the query.
