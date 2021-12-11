@@ -161,6 +161,80 @@
 <span id="161">161</span>
 <span id="162">162</span>
 <span id="163">163</span>
+<span id="164">164</span>
+<span id="165">165</span>
+<span id="166">166</span>
+<span id="167">167</span>
+<span id="168">168</span>
+<span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
 </pre><pre class="rust">
 <span class="doccomment">//! User-facing query representation.</span>
 
@@ -168,19 +242,8 @@
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::index::IndexSchema</span>;
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::value::Value</span>;
 
-<span class="kw">use</span> <span class="ident">std::collections</span>::{<span class="ident">HashMap</span>, <span class="ident">HashSet</span>};
-<span class="kw">use</span> <span class="ident">std::iter::FromIterator</span>;
+<span class="kw">use</span> <span class="ident">std::collections::HashMap</span>;
 <span class="kw">use</span> <span class="ident">std::ops::Bound</span>;
-
-<span class="comment">/*
-/// Representations of a (possibly nested) document field.
-pub enum FieldPath {
-    /// The full path as a string. May include dots representing nesting.
-    Field(String),
-    /// The full path as a vector of path components.
-    Path(Vec&lt;String&gt;),
-}
- */</span>
 
 <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">FieldPath</span> <span class="op">=</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>;
 
@@ -206,32 +269,43 @@ pub enum FieldPath {
 }
 
 <span class="kw">impl</span> <span class="ident">ConstraintDocumentTrait</span> <span class="kw">for</span> <span class="ident">ConstraintDocument</span> {
-    <span class="kw">fn</span> <span class="ident">remove_index_fields</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">index_schema</span>: <span class="kw-2">&amp;</span><span class="ident">IndexSchema</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ConstraintDocument</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">reduced_constraints</span> <span class="op">=</span> <span class="ident">HashMap::new</span>();
+    <span class="kw">fn</span> <span class="ident">remove_index_fields</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">_index_schema</span>: <span class="kw-2">&amp;</span><span class="ident">IndexSchema</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">ConstraintDocument</span> {
+        <span class="comment">// For the time being, don&#39;t remove index fields, due to the issue with</span>
+        <span class="comment">// inclusive/exclusive bounds</span>
+        <span class="self">self</span>.<span class="ident">clone</span>()
 
-        <span class="kw">let</span> <span class="ident">constraints_set</span>: <span class="ident">HashSet</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">FieldPath</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">keys</span>().<span class="ident">collect</span>();
-        <span class="kw">let</span> <span class="ident">index_constraints_set</span>: <span class="ident">HashSet</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">FieldPath</span><span class="op">&gt;</span> <span class="op">=</span>
-            <span class="ident">HashSet::from_iter</span>(<span class="ident">index_schema</span>.<span class="ident">get_fields</span>().<span class="ident">iter</span>().<span class="ident">clone</span>());
-        <span class="ident">constraints_set</span>
-            .<span class="ident">difference</span>(<span class="kw-2">&amp;</span><span class="ident">index_constraints_set</span>)
-            .<span class="ident">for_each</span>(<span class="op">|</span><span class="ident">field_path</span><span class="op">|</span> {
-                <span class="kw">match</span> <span class="self">self</span>.<span class="ident">get</span>(<span class="ident">field_path</span>.<span class="ident">clone</span>()) {
-                    <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic!</span>(<span class="string">&quot;missing field path&quot;</span>),
-                    <span class="prelude-val">Some</span>(<span class="ident">constraint</span>) <span class="op">=</span><span class="op">&gt;</span> {
-                        <span class="ident">reduced_constraints</span>.<span class="ident">insert</span>(<span class="ident">field_path</span>.<span class="ident">clone</span>().<span class="ident">clone</span>(), <span class="ident">constraint</span>.<span class="ident">clone</span>())
-                    }
-                };
-            });
-        <span class="ident">reduced_constraints</span>
+        <span class="comment">// let mut reduced_constraints = HashMap::new();</span>
+
+        <span class="comment">// let constraints_set: HashSet&lt;&amp;FieldPath&gt; = self.keys().collect();</span>
+        <span class="comment">// let index_constraints_set: HashSet&lt;&amp;FieldPath&gt; =</span>
+        <span class="comment">//     HashSet::from_iter(index_schema.get_fields().iter().clone());</span>
+        <span class="comment">// constraints_set</span>
+        <span class="comment">//     .difference(&amp;index_constraints_set)</span>
+        <span class="comment">//     .for_each(|field_path| {</span>
+        <span class="comment">//         match self.get(field_path.clone()) {</span>
+        <span class="comment">//             None =&gt; panic!(&quot;missing field path&quot;),</span>
+        <span class="comment">//             Some(constraint) =&gt; {</span>
+        <span class="comment">//                 reduced_constraints.insert(field_path.clone().clone(), constraint.clone())</span>
+        <span class="comment">//             }</span>
+        <span class="comment">//         };</span>
+        <span class="comment">//     });</span>
+        <span class="comment">// reduced_constraints</span>
     }
 
+    <span class="doccomment">/// Check if a Document matches the constraints. If a Document is missing a Value,</span>
+    <span class="doccomment">/// it automatically doesn&#39;t match the Constraint.</span>
     <span class="kw">fn</span> <span class="ident">matches_document</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">doc</span>: <span class="kw-2">&amp;</span><span class="ident">Document</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">bool</span> {
-        <span class="kw">for</span> (<span class="ident">field_path</span>, <span class="ident">constraint</span>) <span class="kw">in</span> <span class="self">self</span>.<span class="ident">iter</span>() {
+        <span class="kw">for</span> (<span class="ident">path</span>, <span class="ident">constraint</span>) <span class="kw">in</span> <span class="self">self</span>.<span class="ident">iter</span>() {
             <span class="comment">// TODO: remove</span>
-            <span class="macro">dbg!</span>(<span class="kw-2">&amp;</span><span class="ident">field_path</span>, <span class="kw-2">&amp;</span><span class="ident">constraint</span>);
+            <span class="macro">dbg!</span>(<span class="kw-2">&amp;</span><span class="ident">path</span>, <span class="kw-2">&amp;</span><span class="ident">constraint</span>);
 
-            <span class="kw">if</span> <span class="op">!</span><span class="ident">constraint</span>.<span class="ident">matches</span>(<span class="kw-2">&amp;</span><span class="ident">doc</span>.<span class="ident">get</span>(<span class="ident">field_path</span>)) {
-                <span class="kw">return</span> <span class="bool-val">false</span>;
+            <span class="kw">match</span> <span class="ident">doc</span>.<span class="ident">get</span>(<span class="ident">path</span>) {
+                <span class="prelude-val">Some</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                    <span class="kw">if</span> <span class="op">!</span><span class="ident">constraint</span>.<span class="ident">matches</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>) {
+                        <span class="kw">return</span> <span class="bool-val">false</span>;
+                    }
+                }
+                <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="bool-val">false</span>,
             }
         }
 
@@ -289,8 +363,82 @@ pub enum FieldPath {
     }
 
     <span class="doccomment">/// Generate the value range(s) for this constraint.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Note: for the time being, this generates inclusive ranges only, because</span>
+    <span class="doccomment">/// we cannot mix inclusive and exclusive ranges in a multi-field index.</span>
+    <span class="doccomment">/// Note that since we also cannot mix unbounded ranges, one-sided ranges</span>
+    <span class="doccomment">/// (such as inequalities) use a predefined min/max value. For unbounded numbers,</span>
+    <span class="doccomment">/// this limits the range of valid numbers that can be returned with a range.</span>
+    <span class="doccomment">/// This can be considered a &quot;feature&quot; of our implementation due to the limitations</span>
+    <span class="doccomment">/// of using the builtin BTreeMap implementation. An alternative implementation</span>
+    <span class="doccomment">/// is to create a special value type that represents the extrema of a type</span>
+    <span class="doccomment">/// (which would probably be a cleaner and more robust solution if only I had</span>
+    <span class="doccomment">/// thought of it earlier).</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Note: disjunction (OR) operator assumes ranges are non-overlapping.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">generate_value_ranges</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">Bound</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span>, <span class="ident">Bound</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span>)<span class="op">&gt;</span> {
-        <span class="macro">todo!</span>();
+        <span class="kw">match</span> <span class="self">self</span> {
+            <span class="ident">Constraint::Equals</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">vec!</span>[(
+                <span class="ident">Bound::Included</span>(<span class="ident">value</span>.<span class="ident">clone</span>()),
+                <span class="ident">Bound::Included</span>(<span class="ident">value</span>.<span class="ident">clone</span>()),
+            )],
+            <span class="ident">Constraint::LessThan</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">vec!</span>[(
+                <span class="ident">Bound::Included</span>(<span class="ident">value</span>.<span class="ident">get_min_value</span>()),
+                <span class="ident">Bound::Included</span>(<span class="ident">value</span>.<span class="ident">clone</span>()),
+            )],
+            <span class="ident">Constraint::GreaterThan</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="macro">vec!</span>[(
+                <span class="ident">Bound::Included</span>(<span class="ident">value</span>.<span class="ident">clone</span>()),
+                <span class="ident">Bound::Included</span>(<span class="ident">value</span>.<span class="ident">get_max_value</span>()),
+            )],
+
+            <span class="comment">// Conjunction: Combines each pair of ranges</span>
+            <span class="ident">Constraint::And</span>(<span class="ident">constraint1</span>, <span class="ident">constraint2</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="kw">let</span> <span class="ident">value_ranges1</span> <span class="op">=</span> <span class="ident">constraint1</span>.<span class="ident">generate_value_ranges</span>();
+                <span class="kw">let</span> <span class="ident">value_ranges2</span> <span class="op">=</span> <span class="ident">constraint2</span>.<span class="ident">generate_value_ranges</span>();
+
+                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">value_ranges</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
+                <span class="kw">for</span> (<span class="ident">value_range1_min</span>, <span class="ident">value_range1_max</span>) <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">value_ranges1</span> {
+                    <span class="kw">for</span> (<span class="ident">value_range2_min</span>, <span class="ident">value_range2_max</span>) <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">value_ranges2</span> {
+                        <span class="comment">// Assert that range bounds are inclusive.</span>
+                        <span class="kw">let</span> (<span class="ident">min1</span>, <span class="ident">max1</span>, <span class="ident">min2</span>, <span class="ident">max2</span>) <span class="op">=</span> <span class="kw">match</span> (
+                            <span class="ident">value_range1_min</span>,
+                            <span class="ident">value_range1_max</span>,
+                            <span class="ident">value_range2_min</span>,
+                            <span class="ident">value_range2_max</span>,
+                        ) {
+                            (
+                                <span class="ident">Bound::Included</span>(<span class="ident">min1</span>),
+                                <span class="ident">Bound::Included</span>(<span class="ident">max1</span>),
+                                <span class="ident">Bound::Included</span>(<span class="ident">min2</span>),
+                                <span class="ident">Bound::Included</span>(<span class="ident">max2</span>),
+                            ) <span class="op">=</span><span class="op">&gt;</span> (<span class="ident">min1</span>, <span class="ident">max1</span>, <span class="ident">min2</span>, <span class="ident">max2</span>),
+                            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic!</span>(<span class="string">&quot;non-inclusive bounds&quot;</span>),
+                        };
+
+                        <span class="comment">// Combine range if overlapping</span>
+                        <span class="kw">let</span> (<span class="ident">range_min</span>, <span class="ident">range_max</span>) <span class="op">=</span>
+                            (<span class="ident">std::cmp::max</span>(<span class="ident">min1</span>, <span class="ident">min2</span>), <span class="ident">std::cmp::min</span>(<span class="ident">max1</span>, <span class="ident">max2</span>));
+                        <span class="kw">if</span> <span class="ident">range_max</span> <span class="op">&gt;</span> <span class="ident">range_min</span> {
+                            <span class="ident">value_ranges</span>.<span class="ident">push</span>((
+                                <span class="ident">Bound::Included</span>(<span class="ident">range_min</span>.<span class="ident">clone</span>()),
+                                <span class="ident">Bound::Included</span>(<span class="ident">range_max</span>.<span class="ident">clone</span>()),
+                            ));
+                        }
+                    }
+                }
+                <span class="ident">value_ranges</span>
+            }
+
+            <span class="comment">// Disjunction: Returns separate ranges</span>
+            <span class="comment">// Assumes non-overlapping ranges</span>
+            <span class="ident">Constraint::Or</span>(<span class="ident">constraint1</span>, <span class="ident">constraint2</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">value_ranges</span> <span class="op">=</span> <span class="ident">constraint1</span>.<span class="ident">generate_value_ranges</span>();
+                <span class="ident">value_ranges</span>.<span class="ident">append</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">constraint2</span>.<span class="ident">generate_value_ranges</span>());
+                <span class="ident">value_ranges</span>
+            }
+
+            <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic!</span>(<span class="string">&quot;unsupported range type&quot;</span>),
+        }
     }
 }
 
@@ -299,13 +447,13 @@ pub enum FieldPath {
 
 <span class="doccomment">/// Projection of a single field of the projection document.</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Projection</span> {
-    <span class="comment">// Recursive projections on subdocuments.</span>
+    <span class="comment">// Recursive projections on subdocuments</span>
     <span class="ident">ProjectDocument</span>(<span class="ident">ProjectionDocument</span>),
 
-    <span class="comment">// Exclude projecting a value.</span>
+    <span class="comment">// Exclude projecting a value</span>
     <span class="ident">Exclude</span>,
 
-    <span class="comment">// Project a value.</span>
+    <span class="comment">// Project a value</span>
     <span class="ident">Include</span>,
 }
 

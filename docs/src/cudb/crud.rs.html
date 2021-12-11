@@ -88,35 +88,47 @@
 <span id="88">88</span>
 <span id="89">89</span>
 <span id="90">90</span>
+<span id="91">91</span>
+<span id="92">92</span>
+<span id="93">93</span>
+<span id="94">94</span>
+<span id="95">95</span>
+<span id="96">96</span>
 </pre><pre class="rust">
 <span class="doccomment">//! User-facing API for collection-level CRUD operations.</span>
 
-<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::db</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::document</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::db::Collection</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::document::Document</span>;
 <span class="kw">use</span> <span class="kw">crate</span><span class="ident">::index::IndexSchema</span>;
-<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::query</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::mmapv1::TopLevelDocument</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::query</span>::{<span class="ident">ConstraintDocument</span>, <span class="ident">ConstraintDocumentTrait</span>, <span class="ident">Query</span>, <span class="ident">UpdateDocument</span>};
 
 <span class="comment">// TODO: most of these should return Result&lt;T,E&gt; types</span>
 <span class="kw">impl</span> <span class="ident">Collection</span> {
+    <span class="comment">// TODO: We need offset to insert but we want to check if insert is valid before offset</span>
+    <span class="comment">//       Create a function to return the next free offset and change function argument back to Document</span>
     <span class="doccomment">/// Insert one document.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">insert_one</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">doc</span>: <span class="ident">Document</span>) {
-        <span class="self">self</span>.<span class="ident">get_mut_pool</span>().<span class="ident">write_new</span>(<span class="ident">doc</span>);
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">insert_one</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">top_level_doc</span>: <span class="kw-2">&amp;</span><span class="ident">TopLevelDocument</span>) {
+        <span class="comment">// We try to insert the document to all of the indices first, before we actually write it</span>
+        <span class="self">self</span>.<span class="ident">add_document_to_indices</span>(<span class="ident">top_level_doc</span>);
+        <span class="self">self</span>.<span class="ident">get_mut_pool</span>().<span class="ident">write_new</span>(<span class="ident">top_level_doc</span>.<span class="ident">get_const_doc</span>().<span class="ident">clone</span>());
     }
 
     <span class="doccomment">/// Insert a vector of documents.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">insert_many</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">docs</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Document</span><span class="op">&gt;</span>) {
-        <span class="ident">docs</span>.<span class="ident">into_iter</span>().<span class="ident">for_each</span>(<span class="op">|</span><span class="ident">doc</span><span class="op">|</span> <span class="self">self</span>.<span class="ident">insert_one</span>(<span class="ident">doc</span>));
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">insert_many</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">top_level_docs</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">TopLevelDocument</span><span class="op">&gt;</span>) {
+        <span class="ident">top_level_docs</span>.<span class="ident">into_iter</span>()
+            .<span class="ident">for_each</span>(<span class="op">|</span><span class="ident">doc</span><span class="op">|</span> <span class="self">self</span>.<span class="ident">insert_one</span>(<span class="ident">doc</span>));
     }
 
     <span class="doccomment">/// Fetch at most one document matching the query.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">find_one</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">query</span>: <span class="ident">Query</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Document</span><span class="op">&gt;</span> {
-        <span class="comment">// Get best matching index schema, or an empty index schema otherwise.</span>
+        <span class="comment">// Get best matching index schema, or an empty index schema otherwise</span>
         <span class="kw">let</span> <span class="ident">index_schema</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">get_best_index_schema</span>(<span class="kw-2">&amp;</span><span class="ident">query</span>.<span class="ident">constraints</span>) {
             <span class="prelude-val">Some</span>(<span class="ident">index_schema</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">index_schema</span>.<span class="ident">clone</span>(),
             <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">IndexSchema::new</span>(<span class="macro">vec!</span>[]),
         };
 
-        <span class="comment">// Get remaining fields that are not part of the index.</span>
+        <span class="comment">// Get remaining fields that are not part of the index</span>
         <span class="kw">let</span> <span class="ident">remaining_constraints</span> <span class="op">=</span> <span class="ident">query</span>.<span class="ident">constraints</span>.<span class="ident">remove_index_fields</span>(<span class="kw-2">&amp;</span><span class="ident">index_schema</span>);
 
         <span class="comment">// TODO: remove</span>
@@ -124,16 +136,16 @@
         <span class="macro">dbg!</span>(<span class="kw-2">&amp;</span><span class="ident">query</span>.<span class="ident">constraints</span>);
         <span class="macro">dbg!</span>(<span class="kw-2">&amp;</span><span class="ident">remaining_constraints</span>);
 
-        <span class="comment">// Fetch documents that match index.</span>
         <span class="comment">// TODO: implement default ID index</span>
+        <span class="comment">// Fetch documents that match index</span>
         <span class="kw">let</span> <span class="ident">tldocs</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">index_schema</span>.<span class="ident">get_fields</span>().<span class="ident">len</span>() <span class="op">&gt;</span> <span class="number">0</span> {
-            <span class="comment">// Index exists, get records that match index.</span>
+            <span class="comment">// Index exists, get records that match Index</span>
             <span class="kw">let</span> <span class="ident">btree</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">get_indices</span>().<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">index_schema</span>).<span class="ident">unwrap</span>();
 
-            <span class="comment">// Convert index to b-tree ranges.</span>
+            <span class="comment">// Convert Index to b-tree ranges</span>
             <span class="kw">let</span> <span class="ident">btree_ranges</span> <span class="op">=</span> <span class="ident">index_schema</span>.<span class="ident">generate_btree_ranges</span>(<span class="kw-2">&amp;</span><span class="ident">query</span>.<span class="ident">constraints</span>);
 
-            <span class="comment">// Join all ranges.</span>
+            <span class="comment">// Join all ranges</span>
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">tldocs</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
             <span class="kw">for</span> <span class="ident">btree_range</span> <span class="kw">in</span> <span class="ident">btree_ranges</span> {
                 <span class="kw">for</span> (<span class="kw">_</span>, <span class="ident">tldoc_off_set</span>) <span class="kw">in</span> <span class="ident">btree</span>.<span class="ident">range</span>(<span class="ident">btree_range</span>) {
@@ -144,18 +156,18 @@
             }
             <span class="ident">tldocs</span>
         } <span class="kw">else</span> {
-            <span class="comment">// No matching index, get all records.</span>
+            <span class="comment">// No matching index, get all records</span>
             <span class="self">self</span>.<span class="ident">get_pool</span>().<span class="ident">scan</span>()
         };
 
-        <span class="comment">// Linearly scan docs and find first matching document.</span>
+        <span class="comment">// Linearly scan docs and find first matching Document</span>
         <span class="kw">for</span> <span class="kw-2">mut</span> <span class="ident">tldoc</span> <span class="kw">in</span> <span class="ident">tldocs</span> {
             <span class="kw">if</span> <span class="ident">remaining_constraints</span>.<span class="ident">matches_document</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">tldoc</span>.<span class="ident">get_doc</span>()) {
                 <span class="kw">return</span> <span class="prelude-val">Some</span>(<span class="ident">tldoc</span>.<span class="ident">get_doc</span>().<span class="ident">clone</span>());
             }
         }
 
-        <span class="comment">// No match.</span>
+        <span class="comment">// No match</span>
         <span class="prelude-val">None</span>
     }
 

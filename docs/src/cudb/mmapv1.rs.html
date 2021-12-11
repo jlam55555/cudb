@@ -324,6 +324,10 @@
 <span id="324">324</span>
 <span id="325">325</span>
 <span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
 </pre><pre class="rust">
 <span class="doccomment">//! A simple implementation of a mmapv1-like storage system.</span>
 <span class="doccomment">//!</span>
@@ -332,7 +336,7 @@
 <span class="doccomment">//! are variable length, each block has a small fixed-sized header</span>
 <span class="doccomment">//! indicating the size of the next document in bytes. Each block</span>
 <span class="doccomment">//! is stored as a power of two for efficiency reasons.</span>
-<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::document</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::document::Document</span>;
 <span class="kw">use</span> <span class="ident">byteorder</span>::{<span class="ident">ByteOrder</span>, <span class="ident">LittleEndian</span>};
 <span class="kw">use</span> <span class="ident">std::fmt</span>;
 <span class="kw">use</span> <span class="ident">std::os::unix::fs::FileExt</span>;
@@ -356,7 +360,7 @@
 
 <span class="kw">impl</span> <span class="ident">TopLevelDocument</span> {
     <span class="doccomment">/// Getter for block; note that the block is immutable, i.e., the</span>
-    <span class="doccomment">/// block for a topleveldocument can only be mutated internally.</span>
+    <span class="doccomment">/// block for a TopLevelDocument can only be mutated internally.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_block</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">block::Block</span> {
         <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">blk</span>
     }
@@ -364,6 +368,10 @@
     <span class="doccomment">/// Getter for document. The returned document reference is mutable.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_doc</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Document</span> {
         <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">doc</span>
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_const_doc</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="kw-2">&amp;</span><span class="ident">Document</span> {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">doc</span>
     }
 }
 
@@ -458,7 +466,7 @@
     <span class="doccomment">/// Close pool (closes open file).</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">close</span>(<span class="self">self</span>) {
         <span class="comment">// Nothing to do, self and self.file will go out of scope and</span>
-        <span class="comment">// the file will be closed.</span>
+        <span class="comment">// the file will be closed</span>
     }
 
     <span class="doccomment">/// Delete pool (deletes file).</span>
@@ -474,7 +482,7 @@
         <span class="self">self</span>.<span class="ident">top</span> <span class="kw">as</span> <span class="ident">usize</span>
     }
 
-    <span class="comment">// Helper function to read and parse (deserialize) a block header.</span>
+    <span class="comment">// Helper function to read and parse (deserialize) a block header</span>
     <span class="comment">// The format of a (5-byte) block header is:</span>
     <span class="comment">// - Highest-order bit: set if the block is deleted</span>
     <span class="comment">// - Next 7 bits: capacity of current block (2^n bytes)</span>
@@ -494,14 +502,14 @@
     }
 
     <span class="comment">// Helper function to read block data. See `fetch_block_header` for</span>
-    <span class="comment">// details about the format of the block header.</span>
+    <span class="comment">// details about the format of the block header</span>
     <span class="kw">fn</span> <span class="ident">fetch_block_data</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">blk</span>: <span class="kw-2">&amp;</span><span class="ident">block::Block</span>, <span class="ident">buf</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> [<span class="ident">u8</span>]) {
         <span class="self">self</span>.<span class="ident">file</span>
             .<span class="ident">read_exact_at</span>(<span class="ident">buf</span>, <span class="ident">blk</span>.<span class="ident">off</span> <span class="op">+</span> <span class="ident">block::HEADER_SIZE</span> <span class="kw">as</span> <span class="ident">u64</span>)
             .<span class="ident">unwrap</span>();
     }
 
-    <span class="comment">// Helper function to serialize and write a block header.</span>
+    <span class="comment">// Helper function to serialize and write a block header</span>
     <span class="kw">fn</span> <span class="ident">write_block_header</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">blk</span>: <span class="kw-2">&amp;</span><span class="ident">block::Block</span>) {
         <span class="comment">// Prepare header value</span>
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buf</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">5</span>];
@@ -517,8 +525,8 @@
         <span class="self">self</span>.<span class="ident">file</span>.<span class="ident">write_all_at</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>, <span class="ident">blk</span>.<span class="ident">off</span>).<span class="ident">unwrap</span>();
     }
 
-    <span class="comment">// Helper function to write a document and block header. Assumes</span>
-    <span class="comment">// block and buf are already correct.</span>
+    <span class="comment">// Helper function to write a document and block header</span>
+    <span class="comment">// Assumes block and buf are already correct</span>
     <span class="kw">fn</span> <span class="ident">write_block_data</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">blk</span>: <span class="kw-2">&amp;</span><span class="ident">block::Block</span>, <span class="ident">buf</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) {
         <span class="self">self</span>.<span class="ident">write_block_header</span>(<span class="kw-2">&amp;</span><span class="ident">blk</span>);
         <span class="self">self</span>.<span class="ident">file</span>
@@ -526,8 +534,8 @@
             .<span class="ident">unwrap</span>();
     }
 
-    <span class="comment">// Given an existing block and a new length, allocate a new block if necessary.</span>
-    <span class="comment">// Returns the resultant block, whether it is reallocated or not.</span>
+    <span class="comment">// Given an existing block and a new length, allocate a new block if necessary</span>
+    <span class="comment">// Returns the resultant block, whether it is reallocated or not</span>
     <span class="kw">fn</span> <span class="ident">alloc_block</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="kw-2">mut</span> <span class="ident">block</span>: <span class="ident">block::Block</span>, <span class="ident">new_len</span>: <span class="ident">usize</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">block::Block</span> {
         <span class="comment">// If we need to allocate a new block</span>
         <span class="kw">if</span> <span class="ident">block::alloc_size</span>(<span class="ident">new_len</span>) <span class="op">&gt;</span> <span class="ident">block</span>.<span class="ident">cap</span> {
@@ -632,7 +640,7 @@
         )
         .<span class="ident">unwrap</span>();
 
-        <span class="comment">// Perform a scan over blocks, print them all (including deleted ones).</span>
+        <span class="comment">// Perform a scan over blocks, print them all (including deleted ones)</span>
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">cur_pos</span>: <span class="ident">block::Offset</span> <span class="op">=</span> <span class="number">0</span>;
         <span class="kw">while</span> <span class="ident">cur_pos</span> <span class="op">&lt;</span> <span class="self">self</span>.<span class="ident">top</span> {
             <span class="kw">let</span> <span class="ident">block</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">fetch_block_header</span>(<span class="ident">cur_pos</span>);
