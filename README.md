@@ -6,51 +6,12 @@ ECE464 Final project by Jonathan Lam, Derek Lee, Victor Zhang
 
 [API documentation][docs]
 
+[Functional and architectural overview][report]
+
 ---
 
 ### Examples
-
 TODO
-
----
-
-### Functional design
-
-##### CRUD operations
-
-TODO
-
-##### Operations on collections
-
-TODO
-
-##### Documents and data types
-
-TODO
-
-##### Query semantics
-
-TODO: policies on missing index values
-
----
-
-### Architectural design
-
-##### Persistence / filesystem backing store
-
-TODO
-
-##### Serialization
-
-TODO
-
-##### Documents and values
-
-TODO
-
-##### Indices
-
-TODO: managing indices, matching queries to indices, b-trees
 
 ---
 
@@ -96,3 +57,4 @@ $ RUSTFLAGS="$RUSTFLAGS -A unused_variables -A dead_code" cargo build
 These flags can be used for the `run` and `test` targets as well.
 
 [docs]: https://jlam55555.github.io/cudb/
+[report]: http://files.lambdalambda.ninja/reports/21-22_fall/ece464_report_cudb.lam_lee_zhang.pdf
