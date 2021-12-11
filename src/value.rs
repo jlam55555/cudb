@@ -78,7 +78,7 @@ impl Ord for Value {
 }
 
 impl Hash for Value {
-    /// We do not allow indexing by a Document. Panics if a document is used.
+    /// We do not allow indexing by a Document. Panics if a Document is used.
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
             Self::Id(id) => id.hash(state),

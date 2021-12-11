@@ -33,7 +33,7 @@ impl FieldSpec {
 }
 
 // TODO: implementing indices/B-trees
-/// Store the fields used for an index.
+/// Store the fields used for an Index.
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct IndexSchema {
     fields: Vec<FieldSpec>,
@@ -54,9 +54,9 @@ impl IndexSchema {
         &self.fields
     }
 
-    /// Create an Index from the provided document.
+    /// Create an Index from the provided Document.
     pub fn create_index(&self, doc: &Document) -> Option<Index> {
-        // Extract the values from the document
+        // Extract the Values from the Document
         let mut values = Vec::new();
         for spec in self.get_field_specs() {
             let doc_value =  doc.get_or_default(
@@ -64,8 +64,8 @@ impl IndexSchema {
                 spec.get_default().clone()
             );
 
-            // Check if type of the document value matches the type of the default value
-            // If not, the index is invalid (mismatched types)
+            // Check if type of the Document Value matches the type of the default Value
+            // If not, the Index is invalid (mismatched types)
             if !spec.default.is_variant_equal(&doc_value) {
                 return Option::None;
             }
