@@ -22,10 +22,10 @@ pub mod tests {
             col.get_mut_pool().write_new(doc);
         }
 
-        col.create_index(vec![
+        col.declare_index(vec![
             FieldSpec::new(vec![String::from("key")], Value::Int32(0)),
         ]);
-        col.create_index(vec![
+        col.declare_index(vec![
             FieldSpec::new(vec![String::from("y")], Value::String(String::from(""))),
         ]);
 

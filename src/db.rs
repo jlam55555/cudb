@@ -63,7 +63,7 @@ impl Collection {
     /// Create a B-tree index on a list of fields in the collection.
     // TODO: make sure the field exists on all documents, or assign default value.
     //       i.e., `Document::get()` should not panic! if key does not exist
-    pub fn create_index(&mut self, ind_names: Vec<FieldSpec>) {
+    pub fn declare_index(&mut self, ind_names: Vec<FieldSpec>) {
         let index_schema = IndexSchema::new(ind_names);
 
         // ToDo: Make get_const_doc()
@@ -74,7 +74,10 @@ impl Collection {
             let doc = &*top_level_doc.get_doc();
 
             // Create the index for the document
-            let index = index_schema.create_index_instance(doc);
+            let index = match index_schema.create_index(doc) {
+                Some(value) => value,
+                None => panic!("mismatched type when creating index")
+            };
 
             // ToDo: We can remove this if statement if we use a unique auto-generated id value
             //       for each document

@@ -54,18 +54,25 @@ impl IndexSchema {
         &self.fields
     }
 
-    /// Create an IndexInstance from the provided document.
-    pub fn create_index_instance(&self, doc: &Document) -> Index {
+    /// Create an Index from the provided document.
+    pub fn create_index(&self, doc: &Document) -> Option<Index> {
         // Extract the values from the document
         let mut values = Vec::new();
         for spec in self.get_field_specs() {
-            values.push(doc.get_or_default(
+            let doc_value =  doc.get_or_default(
                 spec.get_field_path(),
                 spec.get_default().clone()
-            ));
+            );
+
+            // Check if type of the document value matches the type of the default value
+            // If not, the index is invalid (mismatched types)
+            if !spec.default.is_variant_equal(&doc_value) {
+                return Option::None;
+            }
+            values.push(doc_value);
         }
 
-        Index::new(values)
+        Option::from(Index::new(values))
     }
 
     // ToDo: Decide if public or private
