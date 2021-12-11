@@ -7,16 +7,6 @@ use crate::value::Value;
 use std::collections::HashMap;
 use std::ops::Bound;
 
-/*
-/// Representations of a (possibly nested) document field.
-pub enum FieldPath {
-    /// The full path as a string. May include dots representing nesting.
-    Field(String),
-    /// The full path as a vector of path components.
-    Path(Vec<String>),
-}
- */
-
 pub type FieldPath = Vec<String>;
 
 /// The order that the results should be sorted in.
