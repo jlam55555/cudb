@@ -33,7 +33,7 @@ pub trait ConstraintDocumentTrait {
 impl ConstraintDocumentTrait for ConstraintDocument {
     fn remove_index_fields(&self, _index_schema: &IndexSchema) -> ConstraintDocument {
         // For the time being, don't remove index fields, due to the issue with
-        // inclusive/exclusive bounds.
+        // inclusive/exclusive bounds
         self.clone()
 
         // let mut reduced_constraints = HashMap::new();
@@ -153,7 +153,7 @@ impl Constraint {
                 Bound::Included(value.get_max_value()),
             )],
 
-            // Conjunction: Combines each pair of ranges.
+            // Conjunction: Combines each pair of ranges
             Constraint::And(constraint1, constraint2) => {
                 let value_ranges1 = constraint1.generate_value_ranges();
                 let value_ranges2 = constraint2.generate_value_ranges();
@@ -177,7 +177,7 @@ impl Constraint {
                             _ => panic!("non-inclusive bounds"),
                         };
 
-                        // Combine range if overlapping.
+                        // Combine range if overlapping
                         let (range_min, range_max) =
                             (std::cmp::max(min1, min2), std::cmp::min(max1, max2));
                         if range_max > range_min {
@@ -191,7 +191,8 @@ impl Constraint {
                 value_ranges
             }
 
-            // Disjunction: Returns separate ranges. Assumes non-overlapping.
+            // Disjunction: Returns separate ranges
+            // Assumes non-overlapping ranges
             Constraint::Or(constraint1, constraint2) => {
                 let mut value_ranges = constraint1.generate_value_ranges();
                 value_ranges.append(&mut constraint2.generate_value_ranges());
@@ -208,13 +209,13 @@ pub type ProjectionDocument = HashMap<FieldPath, Projection>;
 
 /// Projection of a single field of the projection document.
 pub enum Projection {
-    // Recursive projections on subdocuments.
+    // Recursive projections on subdocuments
     ProjectDocument(ProjectionDocument),
 
-    // Exclude projecting a value.
+    // Exclude projecting a value
     Exclude,
 
-    // Project a value.
+    // Project a value
     Include,
 }
 

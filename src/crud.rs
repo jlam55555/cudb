@@ -19,13 +19,13 @@ impl Collection {
 
     /// Fetch at most one document matching the query.
     pub fn find_one(&mut self, query: Query) -> Option<Document> {
-        // Get best matching index schema, or an empty index schema otherwise.
+        // Get best matching index schema, or an empty index schema otherwise
         let index_schema = match self.get_best_index_schema(&query.constraints) {
             Some(index_schema) => index_schema.clone(),
             None => IndexSchema::new(vec![]),
         };
 
-        // Get remaining fields that are not part of the index.
+        // Get remaining fields that are not part of the index
         let remaining_constraints = query.constraints.remove_index_fields(&index_schema);
 
         // TODO: remove
@@ -33,16 +33,16 @@ impl Collection {
         dbg!(&query.constraints);
         dbg!(&remaining_constraints);
 
-        // Fetch documents that match index.
         // TODO: implement default ID index
+        // Fetch documents that match index
         let tldocs = if index_schema.get_fields().len() > 0 {
-            // Index exists, get records that match index.
+            // Index exists, get records that match Index
             let btree = self.get_indices().get(&index_schema).unwrap();
 
-            // Convert index to b-tree ranges.
+            // Convert Index to b-tree ranges
             let btree_ranges = index_schema.generate_btree_ranges(&query.constraints);
 
-            // Join all ranges.
+            // Join all ranges
             let mut tldocs = Vec::new();
             for btree_range in btree_ranges {
                 for (_, tldoc_off_set) in btree.range(btree_range) {
@@ -53,18 +53,18 @@ impl Collection {
             }
             tldocs
         } else {
-            // No matching index, get all records.
+            // No matching index, get all records
             self.get_pool().scan()
         };
 
-        // Linearly scan docs and find first matching document.
+        // Linearly scan docs and find first matching Document
         for mut tldoc in tldocs {
             if remaining_constraints.matches_document(&mut tldoc.get_doc()) {
                 return Some(tldoc.get_doc().clone());
             }
         }
 
-        // No match.
+        // No match
         None
     }
 

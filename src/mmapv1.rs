@@ -131,7 +131,7 @@ impl Pool {
     /// Close pool (closes open file).
     pub fn close(self) {
         // Nothing to do, self and self.file will go out of scope and
-        // the file will be closed.
+        // the file will be closed
     }
 
     /// Delete pool (deletes file).
@@ -147,7 +147,7 @@ impl Pool {
         self.top as usize
     }
 
-    // Helper function to read and parse (deserialize) a block header.
+    // Helper function to read and parse (deserialize) a block header
     // The format of a (5-byte) block header is:
     // - Highest-order bit: set if the block is deleted
     // - Next 7 bits: capacity of current block (2^n bytes)
@@ -167,14 +167,14 @@ impl Pool {
     }
 
     // Helper function to read block data. See `fetch_block_header` for
-    // details about the format of the block header.
+    // details about the format of the block header
     fn fetch_block_data(&self, blk: &block::Block, buf: &mut [u8]) {
         self.file
             .read_exact_at(buf, blk.off + block::HEADER_SIZE as u64)
             .unwrap();
     }
 
-    // Helper function to serialize and write a block header.
+    // Helper function to serialize and write a block header
     fn write_block_header(&mut self, blk: &block::Block) {
         // Prepare header value
         let mut buf = [0u8; 5];
@@ -190,8 +190,8 @@ impl Pool {
         self.file.write_all_at(&buf, blk.off).unwrap();
     }
 
-    // Helper function to write a document and block header. Assumes
-    // block and buf are already correct.
+    // Helper function to write a document and block header
+    // Assumes block and buf are already correct
     fn write_block_data(&mut self, blk: &block::Block, buf: &[u8]) {
         self.write_block_header(&blk);
         self.file
@@ -199,8 +199,8 @@ impl Pool {
             .unwrap();
     }
 
-    // Given an existing block and a new length, allocate a new block if necessary.
-    // Returns the resultant block, whether it is reallocated or not.
+    // Given an existing block and a new length, allocate a new block if necessary
+    // Returns the resultant block, whether it is reallocated or not
     fn alloc_block(&mut self, mut block: block::Block, new_len: usize) -> block::Block {
         // If we need to allocate a new block
         if block::alloc_size(new_len) > block.cap {
@@ -305,7 +305,7 @@ impl fmt::Display for Pool {
         )
         .unwrap();
 
-        // Perform a scan over blocks, print them all (including deleted ones).
+        // Perform a scan over blocks, print them all (including deleted ones)
         let mut cur_pos: block::Offset = 0;
         while cur_pos < self.top {
             let block = self.fetch_block_header(cur_pos);

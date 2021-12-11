@@ -95,21 +95,21 @@ impl IndexSchema {
         &self,
         constraints: &ConstraintDocument,
     ) -> Vec<(Bound<Index>, Bound<Index>)> {
-        // Loop through each field of Index, in order.
-        // Convert each constraint to a range or set of ranges on that field.
+        // Loop through each field of Index, in order
+        // Convert each constraint to a range or set of ranges on that field
         let field_ranges = self
             .get_fields()
             .iter()
             .map(|field_path| constraints.get(field_path).unwrap().generate_value_ranges())
             .collect();
 
-        // Generate all combinations of one range from each field.
         // TODO: Deal with mixed bounds (equality and inequality).
+        // Generate all combinations of one range from each field
         Self::generate_combinations(&field_ranges, 0)
     }
 
-    // Helper function to generate combinations for generarte_btree_ranges.
-    // TOOD: test this function.
+    // Helper function to generate combinations for generarte_btree_ranges
+    // TOOD: test this function
     fn generate_combinations(
         field_ranges: &Vec<Vec<(Bound<Value>, Bound<Value>)>>,
         i: usize,
@@ -131,7 +131,7 @@ impl IndexSchema {
 
         let mut combinations = Vec::new();
         for (value_low, value_high) in &field_ranges[i] {
-            // For now, assert these bounds are inclusive.
+            // For now, assert these bounds are inclusive
             let (value_low, value_high) = match (value_low, value_high) {
                 (Bound::Included(value_low), Bound::Included(value_high)) => {
                     (value_low, value_high)
@@ -140,7 +140,7 @@ impl IndexSchema {
             };
 
             for (next_range_low, next_range_high) in next_combinations.clone() {
-                // Create new range ((value_low:next_range_low), (value_high:next_range_high)).
+                // Create new range ((value_low:next_range_low), (value_high:next_range_high))
                 let mut low_range = vec![value_low.clone()];
                 low_range.append(&mut next_range_low.clone());
 
