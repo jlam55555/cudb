@@ -5,7 +5,7 @@
 //! are variable length, each block has a small fixed-sized header
 //! indicating the size of the next document in bytes. Each block
 //! is stored as a power of two for efficiency reasons.
-use crate::document::*;
+use crate::document::Document;
 use byteorder::{ByteOrder, LittleEndian};
 use std::fmt;
 use std::os::unix::fs::FileExt;
@@ -29,7 +29,7 @@ pub struct TopLevelDocument {
 
 impl TopLevelDocument {
     /// Getter for block; note that the block is immutable, i.e., the
-    /// block for a topleveldocument can only be mutated internally.
+    /// block for a TopLevelDocument can only be mutated internally.
     pub fn get_block(&self) -> &block::Block {
         &self.blk
     }

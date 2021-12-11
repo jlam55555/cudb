@@ -1,7 +1,7 @@
 //! Document model data representation.
 
 use crate::query::FieldPath;
-use crate::value::*;
+use crate::value::Value;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -71,8 +71,8 @@ impl Document {
         self.elems.insert(k, v)
     }
 
-    /// Creates `_id` on document (non-recursively) if it doesn't exist.
-    /// Returns whether the `_id` was updated.
+    /// Create `_id` on document (non-recursively) if it doesn't exist.
+    /// Return whether the `_id` was updated.
     pub fn create_id(&mut self) -> bool {
         unimplemented!("create_id")
     }

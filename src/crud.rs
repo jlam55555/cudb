@@ -1,9 +1,9 @@
 //! User-facing API for collection-level CRUD operations.
 
-use crate::db::*;
-use crate::document::*;
+use crate::db::Collection;
+use crate::document::Document;
 use crate::index::IndexSchema;
-use crate::query::*;
+use crate::query::{ConstraintDocument, ConstraintDocumentTrait, Query, UpdateDocument};
 
 // TODO: most of these should return Result<T,E> types
 impl Collection {

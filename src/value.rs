@@ -1,6 +1,6 @@
 //! Variant types for flexible JSON-like document values.
 
-use crate::document::*;
+use crate::document::Document;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
