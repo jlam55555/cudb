@@ -13,7 +13,7 @@ mod utils;
 pub mod tests {
     use super::*;
 
-    // Tests for `alloc_size`
+    // Test for `alloc_size`
     #[test]
     fn test_alloc_size() {
         assert_eq!(alloc_size(0), MIN_BLOCK_SIZE);
@@ -33,14 +33,14 @@ pub mod tests {
         assert_eq!(alloc_size(MAX_BLOCK_SIZE - HEADER_SIZE), MAX_BLOCK_SIZE);
     }
 
-    // Testing that allocating past `MAX_BLOCK_SIZE` should panic.
+    // Test that allocating past `MAX_BLOCK_SIZE` should panic.
     #[test]
     #[should_panic(expected = "document >1MB")]
-    fn test_invalid_alloc_size() {
+    fn test_alloc_size_invalid_size() {
         alloc_size(MAX_BLOCK_SIZE - HEADER_SIZE + 1);
     }
 
-    // Testing pool creation/deletion
+    // Test pool creation/deletion
     #[test]
     fn test_pool_new() {
         let pool_path = Path::new(utils::DB_NAME);
@@ -62,7 +62,7 @@ pub mod tests {
         }
     }
 
-    // Testing that storing records works as expected
+    // Test that storing records works as expected
     // (e.g., correctly allocating sequentially.)
     // NOTE: this depends on the allocation method, this
     // is currently testing the very basic sequential allocator.
@@ -85,7 +85,7 @@ pub mod tests {
         p.drop();
     }
 
-    // Testing inserting multiple items
+    // Test inserting multiple items
     #[test]
     fn test_pool_alloc_multiple() {
         let mut p = Pool::new(&Path::new(utils::DB_NAME));
@@ -102,7 +102,7 @@ pub mod tests {
         p.drop();
     }
 
-    // Testing that data persists between multiple connections to the database.
+    // Test that data persists between multiple connections to the database.
     #[test]
     fn test_pool_persistence() {
         let mut p = Pool::new(&Path::new(utils::DB_NAME));
@@ -128,7 +128,7 @@ pub mod tests {
         assert_eq!(prev_size, post_size);
     }
 
-    // Testing that records can be retrieved successfully from
+    // Test that records can be retrieved successfully from
     // database file.
     #[test]
     fn test_pool_fetch() {
@@ -150,7 +150,7 @@ pub mod tests {
         p.drop();
     }
 
-    // Testing that scanning a pool will return all of its records
+    // Test that scanning a pool will return all of its records
     #[test]
     fn test_pool_scan() {
         let mut p = Pool::new(&Path::new(utils::DB_NAME));
