@@ -5,7 +5,7 @@
 //! are variable length, each block has a small fixed-sized header
 //! indicating the size of the next document in bytes. Each block
 //! is stored as a power of two for efficiency reasons.
-use crate::document::*;
+use crate::document::Document;
 use byteorder::{ByteOrder, LittleEndian};
 use std::fmt;
 use std::os::unix::fs::FileExt;
@@ -29,7 +29,7 @@ pub struct TopLevelDocument {
 
 impl TopLevelDocument {
     /// Getter for block; note that the block is immutable, i.e., the
-    /// block for a topleveldocument can only be mutated internally.
+    /// block for a TopLevelDocument can only be mutated internally.
     pub fn get_block(&self) -> &block::Block {
         &self.blk
     }
@@ -37,6 +37,10 @@ impl TopLevelDocument {
     /// Getter for document. The returned document reference is mutable.
     pub fn get_doc(&mut self) -> &mut Document {
         &mut self.doc
+    }
+
+    pub fn get_const_doc(&self) -> &Document {
+        &self.doc
     }
 }
 
@@ -131,7 +135,7 @@ impl Pool {
     /// Close pool (closes open file).
     pub fn close(self) {
         // Nothing to do, self and self.file will go out of scope and
-        // the file will be closed.
+        // the file will be closed
     }
 
     /// Delete pool (deletes file).
@@ -147,7 +151,7 @@ impl Pool {
         self.top as usize
     }
 
-    // Helper function to read and parse (deserialize) a block header.
+    // Helper function to read and parse (deserialize) a block header
     // The format of a (5-byte) block header is:
     // - Highest-order bit: set if the block is deleted
     // - Next 7 bits: capacity of current block (2^n bytes)
@@ -167,14 +171,14 @@ impl Pool {
     }
 
     // Helper function to read block data. See `fetch_block_header` for
-    // details about the format of the block header.
-    fn fetch_block_data(&mut self, blk: &block::Block, buf: &mut [u8]) {
+    // details about the format of the block header
+    fn fetch_block_data(&self, blk: &block::Block, buf: &mut [u8]) {
         self.file
             .read_exact_at(buf, blk.off + block::HEADER_SIZE as u64)
             .unwrap();
     }
 
-    // Helper function to serialize and write a block header.
+    // Helper function to serialize and write a block header
     fn write_block_header(&mut self, blk: &block::Block) {
         // Prepare header value
         let mut buf = [0u8; 5];
@@ -190,8 +194,8 @@ impl Pool {
         self.file.write_all_at(&buf, blk.off).unwrap();
     }
 
-    // Helper function to write a document and block header. Assumes
-    // block and buf are already correct.
+    // Helper function to write a document and block header
+    // Assumes block and buf are already correct
     fn write_block_data(&mut self, blk: &block::Block, buf: &[u8]) {
         self.write_block_header(&blk);
         self.file
@@ -199,8 +203,8 @@ impl Pool {
             .unwrap();
     }
 
-    // Given an existing block and a new length, allocate a new block if necessary.
-    // Returns the resultant block, whether it is reallocated or not.
+    // Given an existing block and a new length, allocate a new block if necessary
+    // Returns the resultant block, whether it is reallocated or not
     fn alloc_block(&mut self, mut block: block::Block, new_len: usize) -> block::Block {
         // If we need to allocate a new block
         if block::alloc_size(new_len) > block.cap {
@@ -231,8 +235,13 @@ impl Pool {
         blk
     }
 
+    /// Fetch a top level document from a block offset, reading the header.
+    pub fn fetch_block_at_offset(&self, off: block::Offset) -> TopLevelDocument {
+        self.fetch(&self.fetch_block_header(off))
+    }
+
     /// Fetch a top level document from a block address, ignoring the header.
-    pub fn fetch(&mut self, blk: &block::Block) -> TopLevelDocument {
+    pub fn fetch(&self, blk: &block::Block) -> TopLevelDocument {
         let mut buf = vec![0u8; blk.len];
         self.fetch_block_data(&blk, &mut buf);
 
@@ -272,7 +281,7 @@ impl Pool {
 
     /// Linearly scan and retrieve all documents from the pool.
     // TODO: convert the result into a stream for efficiency
-    pub fn scan(&mut self) -> Vec<TopLevelDocument> {
+    pub fn scan(&self) -> Vec<TopLevelDocument> {
         let mut cur_pos: block::Offset = 0;
         let mut tldocs = Vec::new();
 
@@ -300,7 +309,7 @@ impl fmt::Display for Pool {
         )
         .unwrap();
 
-        // Perform a scan over blocks, print them all (including deleted ones).
+        // Perform a scan over blocks, print them all (including deleted ones)
         let mut cur_pos: block::Offset = 0;
         while cur_pos < self.top {
             let block = self.fetch_block_header(cur_pos);

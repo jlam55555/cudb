@@ -5,13 +5,13 @@ use cudb::mmapv1::block::*;
 use cudb::mmapv1::*;
 use cudb::value::Value;
 use std::path::Path;
-use uuid::Uuid;
+
+#[path="./utils.rs"]
+mod utils;
 
 #[cfg(test)]
 pub mod tests {
     use super::*;
-
-    static DB_NAME: &str = "unit_tests.db";
 
     // Tests for `alloc_size`
     #[test]
@@ -43,7 +43,7 @@ pub mod tests {
     // Testing pool creation/deletion
     #[test]
     fn test_pool_new() {
-        let pool_path = Path::new(DB_NAME);
+        let pool_path = Path::new(utils::DB_NAME);
         let p = Pool::new(&pool_path);
 
         // check that new pool exists
@@ -62,34 +62,15 @@ pub mod tests {
         }
     }
 
-    // Helper function to generate sample documents.
-    fn sample_documents(n: u32) -> Vec<Document> {
-        let mut docs = Vec::new();
-
-        // Generate n very-non-random documents
-        for i in 0..n {
-            let mut doc = Document::new();
-            doc.insert(
-                "a".repeat((i + 3) as usize),
-                Value::Id(Uuid::new_v4().to_string()),
-            );
-            doc.insert("key".to_string(), Value::Int32((i as i32) * 3 - 42));
-            doc.insert("y".to_string(), Value::String("Hi world".to_string()));
-            docs.push(doc);
-        }
-
-        docs
-    }
-
     // Testing that storing records works as expected
     // (e.g., correctly allocating sequentially.)
     // NOTE: this depends on the allocation method, this
     // is currently testing the very basic sequential allocator.
     #[test]
     fn test_pool_alloc() {
-        let mut p = Pool::new(&Path::new(DB_NAME));
+        let mut p = Pool::new(&Path::new(utils::DB_NAME));
 
-        let doc = sample_documents(1)[0].clone();
+        let doc = utils::sample_documents(1)[0].clone();
 
         println!("Pool before insert: {:#?}", p);
         println!("Document: {:#?}", doc);
@@ -107,10 +88,10 @@ pub mod tests {
     // Testing inserting multiple items
     #[test]
     fn test_pool_alloc_multiple() {
-        let mut p = Pool::new(&Path::new(DB_NAME));
+        let mut p = Pool::new(&Path::new(utils::DB_NAME));
         println!("Pool before multiple insert: {:#?}", p);
 
-        for doc in sample_documents(16).iter() {
+        for doc in utils::sample_documents(16).iter() {
             let tldoc = p.write_new(doc.clone());
             println!("Inserting document: {:#?}", tldoc);
         }
@@ -124,8 +105,8 @@ pub mod tests {
     // Testing that data persists between multiple connections to the database.
     #[test]
     fn test_pool_persistence() {
-        let mut p = Pool::new(&Path::new(DB_NAME));
-        for doc in sample_documents(16).iter() {
+        let mut p = Pool::new(&Path::new(utils::DB_NAME));
+        for doc in utils::sample_documents(16).iter() {
             let tldoc = p.write_new(doc.clone());
             println!("Inserting document: {:#?}", tldoc);
         }
@@ -136,7 +117,7 @@ pub mod tests {
         p.close();
 
         // reopen pool
-        let p = Pool::new(&Path::new(DB_NAME));
+        let p = Pool::new(&Path::new(utils::DB_NAME));
         println!("Pool after re-opening: {:#?}", p);
         let post_size = p.get_size();
 
@@ -151,8 +132,8 @@ pub mod tests {
     // database file.
     #[test]
     fn test_pool_fetch() {
-        let mut p = Pool::new(&Path::new(DB_NAME));
-        let docs = sample_documents(16);
+        let mut p = Pool::new(&Path::new(utils::DB_NAME));
+        let docs = utils::sample_documents(16);
         let mut blocks = Vec::new();
 
         for doc in docs.iter() {
@@ -172,8 +153,8 @@ pub mod tests {
     // Testing that scanning a pool will return all of its records
     #[test]
     fn test_pool_scan() {
-        let mut p = Pool::new(&Path::new(DB_NAME));
-        let docs = sample_documents(16);
+        let mut p = Pool::new(&Path::new(utils::DB_NAME));
+        let docs = utils::sample_documents(16);
 
         for doc in docs.iter() {
             p.write_new(doc.clone());
@@ -199,8 +180,8 @@ pub mod tests {
     // Test document deletions.
     #[test]
     fn test_pool_delete() {
-        let mut p = Pool::new(&Path::new(DB_NAME));
-        let docs = sample_documents(6);
+        let mut p = Pool::new(&Path::new(utils::DB_NAME));
+        let docs = utils::sample_documents(6);
         let mut blocks = Vec::new();
 
         // Insertion/deletion pattern
@@ -251,8 +232,8 @@ pub mod tests {
     // Test document resizing (both larger and smaller)
     #[test]
     fn test_pool_resize() {
-        let mut p = Pool::new(&Path::new(DB_NAME));
-        let docs = sample_documents(4);
+        let mut p = Pool::new(&Path::new(utils::DB_NAME));
+        let docs = utils::sample_documents(4);
         let mut tldocs = Vec::new();
 
         // Insert four documents

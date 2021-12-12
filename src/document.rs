@@ -1,9 +1,9 @@
 //! Document model data representation.
 
-use crate::value::*;
+use crate::query::FieldPath;
+use crate::value::Value;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::query::FieldPath;
 
 /// (Data) document (as opposed to query document, etc.)
 /// Note that `_id` is implemented as a regular field in the `elems`.
@@ -26,18 +26,33 @@ impl Document {
         Document { elems: map }
     }
 
-    /// Retrieve the value given the path.
-    pub fn get(&self, path: &FieldPath) -> Value {
+    /// Retrieve the value given the path if it exists.
+    pub fn get(&self, path: &FieldPath) -> Option<Value> {
         let mut temp_elems = &self.elems;
 
-        for component in path[0..path.len()-1].iter() {
-            temp_elems = match temp_elems.get(&component[..]).unwrap() {
-                Value::Dict(sub_doc) => sub_doc.get_map_ref(),
-                _ => panic!("Invalid path: Non-document found"),
+        // Retrieve a nested document according to the field path.
+        for component in path[0..path.len() - 1].iter() {
+            temp_elems = match temp_elems.get(&component[..]) {
+                Some(value) => match value {
+                    Value::Dict(sub_doc) => sub_doc.get_map_ref(),
+                    _ => return Option::None,
+                },
+                None => return Option::None,
             };
         }
 
-        temp_elems.get(&path.last().unwrap()[..]).unwrap().clone()
+        match temp_elems.get(&path.last().unwrap()[..]) {
+            Some(value) => Option::from(value.clone()),
+            None => Option::None,
+        }
+    }
+
+    /// Retrieve the value given the path if it exists. Otherwise, use the default value provided.
+    pub fn get_or_default(&self, path: &FieldPath, default: Value) -> Value {
+        match self.get(path) {
+            Some(value) => value,
+            None => default,
+        }
     }
 
     /// Get the hashmap from a document.
@@ -56,8 +71,8 @@ impl Document {
         self.elems.insert(k, v)
     }
 
-    /// Creates `_id` on document (non-recursively) if it doesn't exist.
-    /// Returns whether the `_id` was updated.
+    /// Create `_id` on document (non-recursively) if it doesn't exist.
+    /// Return whether the `_id` was updated.
     pub fn create_id(&mut self) -> bool {
         unimplemented!("create_id")
     }

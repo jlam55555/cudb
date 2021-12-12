@@ -1,7 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/document.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>document.rs - source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings"></script><script src="../../storage.js"></script><script src="../../crates.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg">
-<link rel="alternate icon" type="image/png" href="../../favicon-16x16.png">
-<link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../../cudb/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../../brush.svg" width="18" height="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" class="help-button">?</button>
-                <a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" height="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><pre class="line-numbers"><span id="1"> 1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src&#x2F;document.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>document.rs - source</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings" ></script><script src="../../storage.js"></script><script src="../../crates.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg"><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../../cudb/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu" title="themes"><img width="18" height="18" alt="Pick another theme!" src="../../brush.svg"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input"name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" id="help-button" title="help">?</button><a id="settings-menu" href="../../settings.html" title="settings"><img width="18" height="18" alt="Change settings" src="../../wheel.svg"></a></div></form></nav><section id="main" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1"> 1</span>
 <span id="2"> 2</span>
 <span id="3"> 3</span>
 <span id="4"> 4</span>
@@ -65,18 +62,33 @@
 <span id="62">62</span>
 <span id="63">63</span>
 <span id="64">64</span>
-</pre><div class="example-wrap"><pre class="rust ">
+<span id="65">65</span>
+<span id="66">66</span>
+<span id="67">67</span>
+<span id="68">68</span>
+<span id="69">69</span>
+<span id="70">70</span>
+<span id="71">71</span>
+<span id="72">72</span>
+<span id="73">73</span>
+<span id="74">74</span>
+<span id="75">75</span>
+<span id="76">76</span>
+<span id="77">77</span>
+<span id="78">78</span>
+<span id="79">79</span>
+</pre><pre class="rust">
 <span class="doccomment">//! Document model data representation.</span>
 
-<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::value</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::query::FieldPath</span>;
+<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::value::Value</span>;
 <span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
 <span class="kw">use</span> <span class="ident">std::collections::HashMap</span>;
-<span class="kw">use</span> <span class="kw">crate</span><span class="ident">::query::FieldPath</span>;
 
 <span class="doccomment">/// (Data) document (as opposed to query document, etc.)</span>
 <span class="doccomment">/// Note that `_id` is implemented as a regular field in the `elems`.</span>
 <span class="comment">// TODO: implement custom serialize/deserialize</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Clone</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Clone</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Document</span> {
     <span class="ident">elems</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">Value</span><span class="op">&gt;</span>, <span class="comment">// Hashmap of elements</span>
 }
@@ -94,18 +106,33 @@
         <span class="ident">Document</span> { <span class="ident">elems</span>: <span class="ident">map</span> }
     }
 
-    <span class="doccomment">/// Retrieve the value given the path.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">path</span>: <span class="ident">FieldPath</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Value</span> {
+    <span class="doccomment">/// Retrieve the value given the path if it exists.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">FieldPath</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Value</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">temp_elems</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">elems</span>;
 
-        <span class="kw">for</span> <span class="ident">component</span> <span class="kw">in</span> <span class="ident">path</span>[<span class="number">0</span>..<span class="ident">path</span>.<span class="ident">len</span>()<span class="op">-</span><span class="number">1</span>].<span class="ident">iter</span>() {
-            <span class="ident">temp_elems</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">temp_elems</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">component</span>[..]).<span class="ident">unwrap</span>() {
-                <span class="ident">Value::Dict</span>(<span class="ident">sub_doc</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">sub_doc</span>.<span class="ident">get_map_ref</span>(),
-                <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="macro">panic!</span>(<span class="string">&quot;Invalid path: Non-document found&quot;</span>),
+        <span class="comment">// Retrieve a nested document according to the field path.</span>
+        <span class="kw">for</span> <span class="ident">component</span> <span class="kw">in</span> <span class="ident">path</span>[<span class="number">0</span>..<span class="ident">path</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="number">1</span>].<span class="ident">iter</span>() {
+            <span class="ident">temp_elems</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">temp_elems</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">component</span>[..]) {
+                <span class="prelude-val">Some</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="kw">match</span> <span class="ident">value</span> {
+                    <span class="ident">Value::Dict</span>(<span class="ident">sub_doc</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">sub_doc</span>.<span class="ident">get_map_ref</span>(),
+                    <span class="kw">_</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="ident">Option::None</span>,
+                },
+                <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="kw">return</span> <span class="ident">Option::None</span>,
             };
         }
 
-        <span class="ident">temp_elems</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">path</span>.<span class="ident">last</span>().<span class="ident">unwrap</span>()[..]).<span class="ident">unwrap</span>().<span class="ident">clone</span>()
+        <span class="kw">match</span> <span class="ident">temp_elems</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">path</span>.<span class="ident">last</span>().<span class="ident">unwrap</span>()[..]) {
+            <span class="prelude-val">Some</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Option::from</span>(<span class="ident">value</span>.<span class="ident">clone</span>()),
+            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">Option::None</span>,
+        }
+    }
+
+    <span class="doccomment">/// Retrieve the value given the path if it exists. Otherwise, use the default value provided.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_or_default</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">FieldPath</span>, <span class="ident">default</span>: <span class="ident">Value</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Value</span> {
+        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">get</span>(<span class="ident">path</span>) {
+            <span class="prelude-val">Some</span>(<span class="ident">value</span>) <span class="op">=</span><span class="op">&gt;</span> <span class="ident">value</span>,
+            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">default</span>,
+        }
     }
 
     <span class="doccomment">/// Get the hashmap from a document.</span>
@@ -124,12 +151,13 @@
         <span class="self">self</span>.<span class="ident">elems</span>.<span class="ident">insert</span>(<span class="ident">k</span>, <span class="ident">v</span>)
     }
 
-    <span class="doccomment">/// Creates `_id` on document (non-recursively) if it doesn&#39;t exist.</span>
-    <span class="doccomment">/// Returns whether the `_id` was updated.</span>
+    <span class="doccomment">/// Create `_id` on document (non-recursively) if it doesn&#39;t exist.</span>
+    <span class="doccomment">/// Return whether the `_id` was updated.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_id</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">bool</span> {
         <span class="macro">unimplemented!</span>(<span class="string">&quot;create_id&quot;</span>)
     }
 }
 </pre></div>
 </section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="cudb" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div>
-    <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script></body></html>
+    <script src="../../main.js"></script><script src="../../source-script.js"></script><script src="../../source-files.js"></script>
+</body></html>

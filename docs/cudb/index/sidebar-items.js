@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Index","Store the fields used for an index."],["IndexInstance","Store the values for the fields for a particular document."]]});
+initSidebarItems({"struct":[["FieldSpec",""],["Index","Store the values for the fields for a particular document."],["IndexSchema","Store the fields used for an Index."]]});

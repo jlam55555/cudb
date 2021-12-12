@@ -10,6 +10,6 @@ pub mod query;
 pub mod value;
 
 // Internal API's; should be hidden for production
-// Unhidden now so that they show up in the documentation.
+// Unhidden now so that they show up in the documentation
 pub mod index;
 pub mod mmapv1;

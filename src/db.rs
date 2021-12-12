@@ -1,10 +1,11 @@
 //! User-facing structural API of database.
 
-use std::collections::{BTreeMap, HashMap};
+use crate::index::{FieldSpec, Index, IndexSchema};
+use crate::mmapv1::{block, Pool, TopLevelDocument};
+use crate::query::{ConstraintDocument};
+use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::path::Path;
-use crate::index::{Index, IndexSchema};
-use crate::mmapv1::{block, Pool};
-use crate::query::FieldPath;
+use crate::mmapv1::block::Offset;
 
 /// User API for connection/client-level actions.
 pub struct Client {}
@@ -15,7 +16,7 @@ pub struct Database {}
 /// User API for collection-level actions.
 pub struct Collection {
     pool: Pool,
-    indices: HashMap<IndexSchema, BTreeMap<Index, block::Offset>>,
+    indices: HashMap<IndexSchema, BTreeMap<Index, HashSet<block::Offset>>>,
 }
 
 impl Client {
@@ -38,8 +39,8 @@ impl Collection {
     // aggregate/lookup ... ?
 
     /// Create a collection from a path.
-    pub fn from(path: String) -> Collection {
-        let pool_path = Path::new(&path);
+    pub fn from(path: &str) -> Collection {
+        let pool_path = Path::new(path);
         let p = Pool::new(&pool_path);
 
         Collection {
@@ -48,28 +49,123 @@ impl Collection {
         }
     }
 
+    /// Get the collection's underlying pool.
+    // TODO: replace usages of this with a Collection-level API,
+    //       instead of the pool-level API.
+    pub fn get_pool(&self) -> &Pool {
+        &self.pool
+    }
+
+    /// Get the collection's underlying pool mutably.
+    pub fn get_mut_pool(&mut self) -> &mut Pool {
+        &mut self.pool
+    }
+
     /// Create a B-tree index on a list of fields in the collection.
-    pub fn create_index(&mut self, ind_names: Vec<FieldPath>) -> () {
+    /// If a document doesn't have a field, will use the default value instead.
+    pub fn declare_index(&mut self, ind_names: Vec<FieldSpec>) {
         let index_schema = IndexSchema::new(ind_names);
 
-        // ToDo: Make get_const_doc()
         // Loop through all the documents and insert them into the B-tree
         let mut b_tree = BTreeMap::new();
-        for mut top_level_doc in self.pool.scan() {
-            // Dereference and re-reference to get immutable doc
-            let doc = &*top_level_doc.get_doc();
+        for top_level_doc in self.pool.scan() {
+            let doc = top_level_doc.get_const_doc();
+            let index = match index_schema.create_index(doc) {
+                Some(value) => value,
+                None => panic!("mismatched type when creating index"),
+            };
 
-            // Create the index for the document
-            let index = index_schema.create_index_instance(doc);
-
-            b_tree.insert(index, top_level_doc.get_block().off);
+            add_index_to_b_tree(&mut b_tree, &index, top_level_doc.get_block().off);
         }
 
         self.indices.insert(index_schema, b_tree);
     }
 
-    /// Get all indices created on this collection.
-    pub fn get_indices(&self) -> &HashMap<IndexSchema, BTreeMap<Index, block::Offset>> {
+    /// Recursive helper function to create every Index for the Document and then insert each Index into the B-tree.
+    /// If any Index is invalid, return without inserting any Index.
+    fn add_document_to_index(&mut self, mut index_schema_queue: VecDeque<&IndexSchema>,
+                             top_level_doc: &TopLevelDocument) -> bool {
+        if index_schema_queue.len() == 0 {
+            return true;
+        }
+
+        // Pop the queue to prepare for the next recursive call
+        let index_schema = index_schema_queue.pop_front().unwrap();
+
+        // Try to create an Index for the Document
+        // If invalid, return false
+        let doc = top_level_doc.get_const_doc();
+        let index = match index_schema.create_index(doc) {
+            Some(value) => value,
+            None => return false,
+        };
+
+        // If any index is invalid, return false without adding the document
+        if !self.add_document_to_index(index_schema_queue, top_level_doc) {
+            return false;
+        }
+
+        let mut b_tree = self.indices.get_mut(index_schema).unwrap();
+        add_index_to_b_tree(&mut b_tree, &index, top_level_doc.get_block().off);
+
+        true
+    }
+
+    /// Add a document to all existing indices.
+    /// If any Index is invalid, return without inserting any Index.
+    pub fn add_document_to_indices(&mut self, top_level_doc: &TopLevelDocument) {
+        self.add_document_to_index(self.indices.clone().keys().collect(), top_level_doc);
+    }
+
+    /// Get all indices created on this Collection.
+    pub fn get_indices(&self) -> &HashMap<IndexSchema, BTreeMap<Index, HashSet<block::Offset>>> {
         &self.indices
     }
+
+    /// Close collection and underlying file pointers.
+    pub fn close(self) {
+        self.pool.close();
+    }
+
+    /// Drop collection.
+    pub fn drop(self) {
+        self.pool.drop();
+
+        // TODO: Drop index. Right now index isn't stored so no problem.
+    }
+
+    // TODO: make this private again
+    /// Get the index schema that most closely matches the provided constraints.
+    /// Only index schemas that fully match the constraints will be considered.
+    pub fn get_best_index_schema(&self, constraints: &ConstraintDocument) -> Option<&IndexSchema> {
+        let query_fields = constraints.keys().collect();
+
+        // Get the number of matched fields for each index schema
+        // Keep index schemas if every field inside is in the constraints
+        // Get the first index schema with the max matches
+        let best_index_schema = self
+            .indices
+            .keys()
+            .map(|x| (x, x.get_num_matched_fields(&query_fields)))
+            .filter(|x| x.0.get_fields().len() == x.1 as usize) // Note that we cast i32 to usize (vice versa is unsafe)
+            .max_by(|x, y| (*x).1.cmp(&(*y).1))
+            .map(|x| x.0);
+
+        best_index_schema
+    }
+}
+
+/// Insert an Index with its corresponding Offset into a B-tree
+fn add_index_to_b_tree(b_tree: &mut BTreeMap<Index, HashSet<block::Offset>>,
+                       index: &Index, offset: Offset) {
+    // ToDo: We can remove this if statement if we use a unique auto-generated id value
+    //       for each document
+    if !b_tree.contains_key(&index) {
+        b_tree.insert(index.clone(), HashSet::new());
+    }
+
+    b_tree
+        .get_mut(&index)
+        .unwrap()
+        .insert(offset);
 }
