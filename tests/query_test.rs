@@ -42,9 +42,6 @@ fn fixture() -> Vec<Document> {
 pub mod tests {
     use super::*;
 
-    // Generate B-tree ranges works correctly.
-    // TODO
-
     // Query chooses maximal matching index.
     // TODO
 

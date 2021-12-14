@@ -399,4 +399,92 @@ pub mod tests {
                 ]
         );
     }
+
+    // Test multi-index fields with disjoint ranges.
+    #[test]
+    fn test_generate_btree_ranges_complex() {
+        let index_schema = IndexSchema::new(vec![
+            FieldSpec::new(vec![String::from("a")], Value::Int32(0)),
+            FieldSpec::new(vec![String::from("b")], Value::Int32(0)),
+            FieldSpec::new(vec![String::from("c")], Value::Int32(0)),
+        ]);
+
+        let constraint = &HashMap::from([
+            (
+                vec![String::from("a")],
+                Constraint::Or(
+                    Box::new(Constraint::LessThan(Value::Int32(2))),
+                    Box::new(Constraint::GreaterThan(Value::Int32(8))),
+                ),
+            ),
+            (
+                vec![String::from("b")],
+                Constraint::Or(
+                    Box::new(Constraint::Equals(Value::Int32(5))),
+                    Box::new(Constraint::LessThan(Value::Int32(3))),
+                ),
+            ),
+            (
+                vec![String::from("c")],
+                Constraint::And(
+                    Box::new(Constraint::GreaterThan(Value::Int32(4))),
+                    Box::new(Constraint::LessThan(Value::Int32(9))),
+                ),
+            ),
+        ]);
+
+        assert!(
+            index_schema.generate_btree_ranges(constraint)
+                == vec![
+                    (
+                        Bound::Included(Index::new(vec![
+                            Value::Int32(0).get_min_value(),
+                            Value::Int32(5),
+                            Value::Int32(4),
+                        ])),
+                        Bound::Included(Index::new(vec![
+                            Value::Int32(2),
+                            Value::Int32(5),
+                            Value::Int32(9),
+                        ]))
+                    ),
+                    (
+                        Bound::Included(Index::new(vec![
+                            Value::Int32(0).get_min_value(),
+                            Value::Int32(0).get_min_value(),
+                            Value::Int32(4),
+                        ])),
+                        Bound::Included(Index::new(vec![
+                            Value::Int32(2),
+                            Value::Int32(3),
+                            Value::Int32(9),
+                        ]))
+                    ),
+                    (
+                        Bound::Included(Index::new(vec![
+                            Value::Int32(8),
+                            Value::Int32(5),
+                            Value::Int32(4),
+                        ])),
+                        Bound::Included(Index::new(vec![
+                            Value::Int32(0,).get_max_value(),
+                            Value::Int32(5,),
+                            Value::Int32(9,),
+                        ]))
+                    ),
+                    (
+                        Bound::Included(Index::new(vec![
+                            Value::Int32(8),
+                            Value::Int32(0).get_min_value(),
+                            Value::Int32(4),
+                        ])),
+                        Bound::Included(Index::new(vec![
+                            Value::Int32(0).get_max_value(),
+                            Value::Int32(3),
+                            Value::Int32(9),
+                        ]))
+                    )
+                ]
+        );
+    }
 }
