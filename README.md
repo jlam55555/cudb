@@ -4,9 +4,9 @@ Simple document-based noSQL DBMS modelled after MongoDB. (Has nothing to do with
 
 ECE464 Final project by Jonathan Lam, Derek Lee, Victor Zhang
 
-[API documentation][docs]
-
-[Functional and architectural overview][report]
+[API documentation][docs] |
+[Functional and architectural overview][report] |
+[Presentation][presentation]
 
 ---
 
@@ -54,3 +54,4 @@ where `[TEST_FN_NAME]` is one of the tests defined in the `tests/` directory, e.
 
 [docs]: https://jlam55555.github.io/cudb/
 [report]: http://files.lambdalambda.ninja/reports/21-22_fall/ece464_report_cudb.lam_lee_zhang.pdf
+[presentation]: http://files.lambdalambda.ninja/reports/21-22_fall/ece464_presentation_cudb.lam_lee_zhang.pdf
