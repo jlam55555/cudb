@@ -281,7 +281,7 @@ impl Pool {
     }
 
     /// Linearly scan and retrieve all documents from the pool.
-    // TODO: convert the result into a stream for efficiency
+    // TODO: convert the result into an iter for efficiency
     pub fn scan(&self) -> Vec<TopLevelDocument> {
         let mut cur_pos: block::Offset = 0;
         let mut tldocs = Vec::new();
@@ -295,6 +295,20 @@ impl Pool {
         }
 
         tldocs
+    }
+
+    // Returns a new block representing the next offset, for use in
+    // writing a new document.
+    pub fn get_next_offset(&self, doc: Document) -> TopLevelDocument {
+        TopLevelDocument {
+            blk: block::Block {
+                off: self.top,
+                len: 0,
+                cap: 0,
+                del: false,
+            },
+            doc: doc,
+        }
     }
 }
 

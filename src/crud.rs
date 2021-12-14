@@ -32,21 +32,17 @@ impl Collection {
         Option::from(IndexSchema::new(field_specs))
     }
 
-    // TODO: We need offset to insert but we want to check if insert is valid before offset
-    //       Create a function to return the next free offset and change function argument back to Document
     /// Insert one document.
-    pub fn insert_one(&mut self, top_level_doc: &TopLevelDocument) {
+    pub fn insert_one(&mut self, doc: Document) {
         // We try to insert the document to all of the indices first, before we actually write it
-        self.add_document_to_indices(top_level_doc);
-        self.get_mut_pool()
-            .write_new(top_level_doc.get_doc().clone());
+        let tldoc = self.get_pool().get_next_offset(doc);
+        self.add_document_to_indices(&tldoc);
+        self.get_mut_pool().write_new(tldoc.get_doc().clone());
     }
 
     /// Insert a vector of documents.
-    pub fn insert_many(&mut self, top_level_docs: Vec<&TopLevelDocument>) {
-        top_level_docs
-            .into_iter()
-            .for_each(|doc| self.insert_one(doc));
+    pub fn insert_many(&mut self, docs: Vec<Document>) {
+        docs.into_iter().for_each(|doc| self.insert_one(doc));
     }
 
     // Query helper: transforms a query into a TopLevelDocument iterator.
@@ -111,6 +107,15 @@ impl Collection {
         self.query(query)
             .map(|tldoc| tldoc.get_doc().clone())
             .collect()
+    }
+
+    /// Fetch all documents from collection.
+    pub fn find_all(&self) -> Vec<Document> {
+        self.find_many(Query {
+            constraints: HashMap::new(),
+            projection: HashMap::new(),
+            order: None,
+        })
     }
 
     /// Update at most one document that matches the query.
