@@ -275,4 +275,35 @@ pub mod tests {
                 )]
         );
     }
+
+    // Test disjunction btree range generation
+    #[test]
+    fn test_generate_btree_ranges_disj() {
+        let index_schema = IndexSchema::new(vec![FieldSpec::new(
+            vec![String::from("a")],
+            Value::Int32(0),
+        )]);
+
+        let constraint = &HashMap::from([(
+            vec![String::from("a")],
+            Constraint::Or(
+                Box::new(Constraint::GreaterThan(Value::Int32(3))),
+                Box::new(Constraint::LessThan(Value::Int32(0))),
+            ),
+        )]);
+
+        assert!(
+            index_schema.generate_btree_ranges(constraint)
+                == vec![
+                    (
+                        Bound::Included(Index::new(vec![Value::Int32(3)])),
+                        Bound::Included(Index::new(vec![Value::Int32(0).get_max_value()])),
+                    ),
+                    (
+                        Bound::Included(Index::new(vec![Value::Int32(0).get_min_value()])),
+                        Bound::Included(Index::new(vec![Value::Int32(0)])),
+                    ),
+                ]
+        );
+    }
 }
