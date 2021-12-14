@@ -21,6 +21,7 @@ fn fixture() -> Vec<Document> {
     subdoc.insert(String::from("d"), Value::String(String::from("hello")));
     subdoc.insert(String::from("e"), Value::String(String::from("world")));
     docs[0].insert(String::from("c"), Value::Dict(subdoc));
+    docs[0].insert(String::from("arr"), Value::Array(vec![Value::Int32(0)]));
 
     docs[1].insert(String::from("a"), Value::Int32(5));
     docs[1].insert(String::from("b"), Value::Int32(4));
@@ -354,6 +355,38 @@ pub mod tests {
                     None => false,
                 },
             )
+            .map(|doc| doc.clone())
+            .collect::<Vec<Document>>();
+
+        assert!(are_doc_sets_equal(&query_results, &true_results));
+    }
+
+    // Test query with array element match.
+    #[test]
+    fn test_find_many_array() {
+        Collection::from(utils::DB_NAME).drop();
+
+        let mut col = Collection::from(utils::DB_NAME);
+        for doc in fixture() {
+            col.get_mut_pool().write_new(doc);
+        }
+        let query = Query {
+            constraints: HashMap::from([(
+                vec![String::from("b")],
+                Constraint::In(vec![Value::Int32(0), Value::Int32(3)]),
+            )]),
+            projection: HashMap::new(),
+            order: None,
+        };
+        let query_results = col.find_many(query);
+        col.drop();
+
+        let true_results = fixture()
+            .iter()
+            .filter(|doc| match doc.get(&vec![String::from("b")]) {
+                Some(value) => HashSet::from([Value::Int32(0), Value::Int32(3)]).contains(&value),
+                None => false,
+            })
             .map(|doc| doc.clone())
             .collect::<Vec<Document>>();
 

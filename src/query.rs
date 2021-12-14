@@ -120,6 +120,14 @@ impl Constraint {
                     }
                 }
             }
+            Self::In(values) => {
+                for i in 1..values.len() {
+                    if !values[i - 1].is_variant_equal(&values[i]) {
+                        return None;
+                    }
+                }
+                return Some(values[0].clone());
+            }
             _ => panic!("currently unsupported constraint type"),
         }
     }
