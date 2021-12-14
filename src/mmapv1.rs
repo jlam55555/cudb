@@ -129,7 +129,7 @@ impl Pool {
             .unwrap();
 
         let mut ind_path_buf = path.to_path_buf();
-        ind_path_buf.set_extension("db_ind");
+        ind_path_buf.set_extension("dbind");
         let indices_file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -142,7 +142,7 @@ impl Pool {
             top: file.metadata().unwrap().len(),
             file: file,
             indices_file: indices_file,
-            path: PathBuf::from(&path),
+            path: path_buf,
         }
     }
 
@@ -171,9 +171,13 @@ impl Pool {
     /// Delete pool (deletes file).
     pub fn drop(self) {
         let path = self.path.clone();
+        let mut indices_path = self.path.clone();
+        indices_path.set_extension("dbind");
+
         self.close();
 
         fs::remove_file(path).unwrap();
+        fs::remove_file(indices_path).unwrap();
     }
 
     /// Gets pool (file) size in bytes.

@@ -44,9 +44,14 @@ impl Collection {
 
         let indices_buf = &p.read_indices();
 
+        let indices = match bincode::deserialize(&indices_buf) {
+            Ok(val) => val,
+            Err(_) => HashMap::new(),
+        };
+
         Collection {
             pool: p,
-            indices: bincode::deserialize(&indices_buf).unwrap(),
+            indices: indices,
         }
     }
 
