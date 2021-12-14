@@ -32,7 +32,6 @@ impl FieldSpec {
     }
 }
 
-// TODO: implementing indices/B-trees
 /// Store the fields used for an Index.
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct IndexSchema {

@@ -251,5 +251,62 @@ pub mod tests {
         assert!(are_doc_sets_equal(&query1_results, &query2_results));
     }
 
-    // ... multi fields
+    // Test query with constraints over multiple fields matching the index.
+    #[test]
+    fn test_find_many_multi_field() {
+        Collection::from(utils::DB_NAME).drop();
+
+        let mut col = Collection::from(utils::DB_NAME);
+        for doc in fixture() {
+            col.get_mut_pool().write_new(doc);
+        }
+        col.declare_index(vec![FieldSpec::new(
+            vec![String::from("b")],
+            Value::Int32(3),
+        )]);
+        let query = Query {
+            constraints: HashMap::from([
+                (
+                    vec![String::from("a")],
+                    Constraint::And(
+                        Box::new(Constraint::GreaterThan(Value::Int32(1))),
+                        Box::new(Constraint::Or(
+                            Box::new(Constraint::LessThan(Value::Int32(4))),
+                            Box::new(Constraint::Equals(Value::Int32(4))),
+                        )),
+                    ),
+                ),
+                (
+                    vec![String::from("b")],
+                    Constraint::Or(
+                        Box::new(Constraint::LessThan(Value::Int32(4))),
+                        Box::new(Constraint::Equals(Value::Int32(4))),
+                    ),
+                ),
+            ]),
+            projection: HashMap::new(),
+            order: None,
+        };
+        let query_results = col.find_many(query);
+        col.drop();
+
+        let true_results = fixture()
+            .iter()
+            .filter(|doc| {
+                match (
+                    doc.get(&vec![String::from("a")]),
+                    doc.get(&vec![String::from("b")]),
+                ) {
+                    (Some(a_value), Some(b_value)) => {
+                        (a_value > Value::Int32(1) && a_value <= Value::Int32(4))
+                            && b_value <= Value::Int32(4)
+                    }
+                    (_, None) | (None, _) => false,
+                }
+            })
+            .map(|doc| doc.clone())
+            .collect::<Vec<Document>>();
+
+        assert!(are_doc_sets_equal(&query_results, &true_results));
+    }
 }
