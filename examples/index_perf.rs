@@ -94,10 +94,13 @@ fn main() {
     populate_collection(&mut col, 100000);
     print_collection_size(&col);
 
+    // Query without index
     query_lt_100(&col);
 
+    // Query with index
     create_index(&mut col);
     query_lt_100(&col);
 
+    // Close and write indices
     col.close();
 }

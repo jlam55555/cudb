@@ -32,7 +32,7 @@ $ ./build_docs.sh
 ```
 
 ##### Run example
-See the [examples/][./examples/] directory. For example:
+See the [examples/](./examples/) directory. For example:
 ```bash
 $ cargo run --example index_perf
 ```
