@@ -76,7 +76,7 @@ impl Collection {
         // Loop through all the documents and insert them into the B-tree
         let mut b_tree = BTreeMap::new();
         for top_level_doc in self.pool.scan() {
-            let doc = top_level_doc.get_const_doc();
+            let doc = top_level_doc.get_doc();
             let index = match index_schema.create_index(doc) {
                 Some(value) => value,
                 None => panic!("mismatched type when creating index"),
@@ -101,7 +101,7 @@ impl Collection {
 
         // Try to create an Index for the Document
         // If invalid, return false
-        let doc = top_level_doc.get_const_doc();
+        let doc = top_level_doc.get_doc();
         let index = match index_schema.create_index(doc) {
             Some(value) => value,
             None => return false,

@@ -39,7 +39,7 @@ impl Collection {
         // We try to insert the document to all of the indices first, before we actually write it
         self.add_document_to_indices(top_level_doc);
         self.get_mut_pool()
-            .write_new(top_level_doc.get_const_doc().clone());
+            .write_new(top_level_doc.get_doc().clone());
     }
 
     /// Insert a vector of documents.
@@ -113,10 +113,38 @@ impl Collection {
     }
 
     /// Update at most one document that matches the query.
-    pub fn update_one(&self, _query: ConstraintDocument, _update: UpdateDocument) {}
+    // TODO: Update document should actually update the fields.
+    pub fn update_one(&mut self, query: ConstraintDocument, update: Document) {
+        match self
+            .query(Query {
+                constraints: query,
+                projection: HashMap::new(),
+                order: None,
+            })
+            .next()
+        {
+            Some(tldoc) => {
+                let mut new_tldoc = tldoc;
+                *new_tldoc.get_mut_doc() = update.clone();
+                self.get_mut_pool().write(&mut new_tldoc);
+            }
+            None => (),
+        }
+    }
 
     /// Update all documents matching the query.
-    pub fn update_many(&self, _query: ConstraintDocument, _update: UpdateDocument) {}
+    pub fn update_many(&mut self, query: ConstraintDocument, update: Document) {
+        self.query(Query {
+            constraints: query,
+            projection: HashMap::new(),
+            order: None,
+        })
+        .for_each(|tldoc| {
+            let mut new_tldoc = tldoc;
+            *new_tldoc.get_mut_doc() = update.clone();
+            self.get_mut_pool().write(&mut new_tldoc);
+        })
+    }
 
     /// Delete at most one document that matches the query.
     pub fn delete_one(&mut self, query: ConstraintDocument) {
