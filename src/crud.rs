@@ -6,6 +6,8 @@ use crate::index::{FieldSpec, IndexSchema};
 use crate::mmapv1::TopLevelDocument;
 use crate::query::{ConstraintDocument, ConstraintDocumentTrait, Query, UpdateDocument};
 
+use std::collections::HashMap;
+
 // TODO: most of these should return Result<T,E> types
 impl Collection {
     /// Check if a Constraint Document is valid.
@@ -103,7 +105,6 @@ impl Collection {
     }
 
     /// Fetch a vector of documents matching the query.
-    // TODO: Return iterator instead.
     pub fn find_many(&self, query: Query) -> Vec<Document> {
         // Linearly scan docs to find matching ones.
         self.query(query)
@@ -118,8 +119,27 @@ impl Collection {
     pub fn update_many(&self, _query: ConstraintDocument, _update: UpdateDocument) {}
 
     /// Delete at most one document that matches the query.
-    pub fn delete_one(&self, _query: ConstraintDocument) {}
+    pub fn delete_one(&mut self, query: ConstraintDocument) {
+        match self
+            .query(Query {
+                constraints: query,
+                projection: HashMap::new(),
+                order: None,
+            })
+            .next()
+        {
+            Some(tldoc) => self.get_mut_pool().delete(tldoc.get_block().clone()),
+            None => (),
+        }
+    }
 
     /// Delete all documents that match the query.
-    pub fn delete_many(&self, _query: ConstraintDocument) {}
+    pub fn delete_many(&mut self, query: ConstraintDocument) {
+        self.query(Query {
+            constraints: query,
+            projection: HashMap::new(),
+            order: None,
+        })
+        .for_each(|tldoc| self.get_mut_pool().delete(tldoc.get_block().clone()));
+    }
 }
