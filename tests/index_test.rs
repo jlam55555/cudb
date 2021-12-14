@@ -1,11 +1,8 @@
 // Test cases for indices.
 
 use cudb::db::Collection;
-use cudb::document::Document;
 use cudb::index::FieldSpec;
 use cudb::value::Value;
-
-use std::collections::HashMap;
 
 #[path = "./utils.rs"]
 mod utils;

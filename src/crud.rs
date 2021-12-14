@@ -14,17 +14,29 @@ impl Collection {
     pub fn insert_one(&mut self, top_level_doc: &TopLevelDocument) {
         // We try to insert the document to all of the indices first, before we actually write it
         self.add_document_to_indices(top_level_doc);
-        self.get_mut_pool().write_new(top_level_doc.get_const_doc().clone());
+        self.get_mut_pool()
+            .write_new(top_level_doc.get_const_doc().clone());
     }
 
     /// Insert a vector of documents.
     pub fn insert_many(&mut self, top_level_docs: Vec<&TopLevelDocument>) {
-        top_level_docs.into_iter()
+        top_level_docs
+            .into_iter()
             .for_each(|doc| self.insert_one(doc));
     }
 
     /// Fetch at most one document matching the query.
     pub fn find_one(&mut self, query: Query) -> Option<Document> {
+        let docs = self.find_many(query);
+        if docs.len() > 0 {
+            Some(docs[0].clone())
+        } else {
+            None
+        }
+    }
+
+    /// Fetch a vector of documents matching the query.
+    pub fn find_many(&self, query: Query) -> Vec<Document> {
         // Get best matching index schema, or an empty index schema otherwise
         let index_schema = match self.get_best_index_schema(&query.constraints) {
             Some(index_schema) => index_schema.clone(),
@@ -42,11 +54,15 @@ impl Collection {
         // TODO: implement default ID index
         // Fetch documents that match index
         let tldocs = if index_schema.get_fields().len() > 0 {
+            dbg!("Using index");
+
             // Index exists, get records that match Index
             let btree = self.get_indices().get(&index_schema).unwrap();
 
             // Convert Index to b-tree ranges
             let btree_ranges = index_schema.generate_btree_ranges(&query.constraints);
+
+            dbg!(&btree_ranges);
 
             // Join all ranges
             let mut tldocs = Vec::new();
@@ -59,24 +75,25 @@ impl Collection {
             }
             tldocs
         } else {
+            dbg!("No matching index");
+
             // No matching index, get all records
             self.get_pool().scan()
         };
 
+        dbg!(&tldocs);
+
         // Linearly scan docs and find first matching Document
+        // TODO: Return an iter instead
+        let mut docs = Vec::new();
         for mut tldoc in tldocs {
             if remaining_constraints.matches_document(&mut tldoc.get_doc()) {
-                return Some(tldoc.get_doc().clone());
+                docs.push(tldoc.get_doc().clone());
             }
         }
 
         // No match
-        None
-    }
-
-    /// Fetch a vector of documents matching the query.
-    pub fn find_many(&self, _query: Query) -> Vec<Document> {
-        Vec::new()
+        docs
     }
 
     /// Update at most one document that matches the query.

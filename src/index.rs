@@ -45,9 +45,7 @@ impl IndexSchema {
     }
 
     pub fn get_fields(&self) -> Vec<FieldPath> {
-        self.fields.iter()
-            .map(|x| x.field_path.clone())
-            .collect()
+        self.fields.iter().map(|x| x.field_path.clone()).collect()
     }
 
     pub fn get_field_specs(&self) -> &Vec<FieldSpec> {
@@ -59,10 +57,7 @@ impl IndexSchema {
         // Extract the Values from the Document
         let mut values = Vec::new();
         for spec in self.get_field_specs() {
-            let doc_value =  doc.get_or_default(
-                spec.get_field_path(),
-                spec.get_default().clone()
-            );
+            let doc_value = doc.get_or_default(spec.get_field_path(), spec.get_default().clone());
 
             // Check if type of the Document Value matches the type of the default Value
             // If not, the Index is invalid (mismatched types)
@@ -103,19 +98,32 @@ impl IndexSchema {
             .map(|field_path| constraints.get(field_path).unwrap().generate_value_ranges())
             .collect();
 
-        // TODO: Deal with mixed bounds (equality and inequality).
         // Generate all combinations of one range from each field
         Self::generate_combinations(&field_ranges, 0)
     }
 
-    // Helper function to generate combinations for generarte_btree_ranges
-    // TOOD: test this function
+    // Helper function to generate combinations for generate_btree_ranges.
+    // The base case is messy but it works.
     fn generate_combinations(
         field_ranges: &Vec<Vec<(Bound<Value>, Bound<Value>)>>,
         i: usize,
     ) -> Vec<(Bound<Index>, Bound<Index>)> {
-        if i == field_ranges.len() {
-            return Vec::new();
+        assert!(i <= field_ranges.len() - 1);
+
+        // Base case: convert each field/value range into a singleton index range
+        if i == field_ranges.len() - 1 {
+            return field_ranges
+                .last()
+                .unwrap()
+                .iter()
+                .map(|field_range| match field_range {
+                    (Bound::Included(value_low), Bound::Included(value_high)) => (
+                        Bound::Included(Index::new(vec![value_low.clone()])),
+                        Bound::Included(Index::new(vec![value_high.clone()])),
+                    ),
+                    _ => panic!("non-inclusive value ranges"),
+                })
+                .collect();
         }
 
         let next_combinations_indices = Self::generate_combinations(field_ranges, i + 1);
@@ -129,9 +137,12 @@ impl IndexSchema {
                     _ => panic!("invalid index range"),
                 });
 
+        dbg!(&next_combinations_indices);
+        dbg!(&next_combinations);
+
         let mut combinations = Vec::new();
         for (value_low, value_high) in &field_ranges[i] {
-            // For now, assert these bounds are inclusive
+            // For now, assert these bounds are inclusive; they should always be inclusive
             let (value_low, value_high) = match (value_low, value_high) {
                 (Bound::Included(value_low), Bound::Included(value_high)) => {
                     (value_low, value_high)
