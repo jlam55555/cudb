@@ -16,11 +16,14 @@ fn populate_collection(col: &mut Collection, n: i32) {
 
     let mut docs = Vec::new();
     let mut rng = rand::thread_rng();
-    for _ in 0..n {
-        docs.push(Document::from(HashMap::from([(
-            String::from("randid"),
-            Value::Int32(rng.gen::<i32>() % 1000),
-        )])));
+    for i in 0..n {
+        docs.push(Document::from(HashMap::from([
+            (
+                String::from("randid"),
+                Value::Int32(rng.gen::<i32>() % 1000),
+            ),
+            (String::from("insertion_index"), Value::Int32(i)),
+        ])));
     }
     col.insert_many(docs);
 
@@ -66,19 +69,32 @@ fn query_lt_100(col: &Collection) {
     let start = Instant::now();
 
     let query = Query {
-        constraints: HashMap::from([(
-            vec![String::from("randid")],
-            Constraint::And(
-                Box::new(Constraint::LessThan(Value::Int32(100))),
-                Box::new(Constraint::GreaterThan(Value::Int32(0))),
+        constraints: HashMap::from([
+            (
+                vec![String::from("randid")],
+                Constraint::And(
+                    Box::new(Constraint::LessThan(Value::Int32(100))),
+                    Box::new(Constraint::GreaterThan(Value::Int32(0))),
+                ),
             ),
-        )]),
+            (
+                vec![String::from("insertion_index")],
+                Constraint::And(
+                    Box::new(Constraint::LessThan(Value::Int32(100))),
+                    Box::new(Constraint::GreaterThan(Value::Int32(0))),
+                ),
+            ),
+        ]),
         projection: HashMap::new(),
         order: None,
     };
 
     let query_results = col.find_many(query);
     println!("Number of results: {}", query_results.len());
+
+    for x in query_results {
+        println!("{}", x);
+    }
 
     println!("Elapsed: {}ms", start.elapsed().as_millis());
 }
@@ -94,7 +110,7 @@ fn main() {
     // print_collection_size(&col);
 
     // create_index(&mut col);
-    // query_lt_100(&col);
+    query_lt_100(&col);
 
     // col.close();
 }
