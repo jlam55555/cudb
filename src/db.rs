@@ -2,7 +2,6 @@
 
 use crate::index::{FieldSpec, Index, IndexSchema};
 use crate::mmapv1::{block, Pool, TopLevelDocument};
-use crate::query::{ConstraintDocument};
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::path::Path;
 use crate::mmapv1::block::Offset;
@@ -64,19 +63,15 @@ impl Collection {
     /// Create a B-tree index on a list of fields in the collection.
     /// If a document doesn't have a field, will use the default value instead.
     pub fn declare_index(&mut self, ind_names: Vec<FieldSpec>) {
-        // Check if this Index Schema will conflict with any existing Index Schemas
-        let proposed_index_schema = ind_names.iter()
-            .map(|x| (x.get_field_path(), x.get_default()))
-            .collect();
+        let index_schema = IndexSchema::new(ind_names);
 
+        // Check if this Index Schema will conflict with any existing Index Schemas
         // If there is a conflict, stop without creating the new index
         for existing_index_schema in self.indices.keys() {
-            if existing_index_schema.is_conflicting(&proposed_index_schema) {
+            if existing_index_schema.is_conflicting(&index_schema) {
                 return;
             }
         }
-
-        let index_schema = IndexSchema::new(ind_names);
 
         // Loop through all the documents and insert them into the B-tree
         let mut b_tree = BTreeMap::new();
@@ -147,14 +142,14 @@ impl Collection {
     }
 
     // TODO: make this private again
-    /// Get the index schema that most closely matches the provided constraints.
-    /// Only index schemas that fully match the constraints will be considered.
-    pub fn get_best_index_schema(&self, constraints: &ConstraintDocument) -> Option<&IndexSchema> {
-        let query_fields = constraints.keys().collect();
+    /// Get the Index Schema that most closely matches the provided Constraints.
+    /// Only Index Schemas that fully match the Constraints will be considered.
+    pub fn get_best_index_schema(&self, constraint_schema: &IndexSchema) -> Option<&IndexSchema> {
+        let query_fields = constraint_schema.get_as_hashmap();
 
-        // Get the number of matched fields for each index schema
-        // Keep index schemas if every field inside is in the constraints
-        // Get the first index schema with the max matches
+        // Get the number of matched fields for each Index Schema
+        // Keep Index Schemas if every field inside is in the Constraints
+        // Get the first Index Schema with the most matches
         let best_index_schema = self
             .indices
             .keys()

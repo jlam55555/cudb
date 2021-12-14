@@ -5,7 +5,7 @@ use crate::query::ConstraintDocument;
 use crate::query::FieldPath;
 use crate::value::Value;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::ops::Bound;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -52,16 +52,32 @@ impl IndexSchema {
         &self.fields
     }
 
-    /// Compare the current Index Schema with another Index Schema represented by a HashMap.
+    /// Convert the Index Schema into a HashMap.
+    pub fn get_as_hashmap(&self) -> HashMap<&FieldPath, &Value> {
+        self.get_field_specs().iter()
+            .map(|x| (x.get_field_path(), x.get_default()))
+            .collect()
+    }
+
+    /// Check if the Field Path is in the Index Schema and if it is, whether the
+    /// default values have the same variant.
+    ///
+    /// Return true if the Field Path is not in the Index Schema or if the default values have the
+    /// same variant.
+    /// Return false if the default values do not have the same variant.
+    fn is_field_spec_conflicting(&self, field_spec: &FieldSpec, index_schema: &HashMap<&FieldPath, &Value>) -> bool {
+        !match index_schema.get(field_spec.get_field_path()) {
+            Some(value) => field_spec.get_default().is_variant_equal(value),
+            None => true,
+        }
+    }
+
+    /// Compare the current Index Schema with another Index Schema.
     /// Check if any shared fields have conflicting Value variants (e.g. different types).
-    pub fn is_conflicting(&self, index_schema: &HashMap<&FieldPath, &Value>) -> bool {
-        for field_spec in &self.fields {
-            // Check if the other Index Schema shares the field and if it does, whether the
-            // default values have the same variant.
-            if !match index_schema.get(field_spec.get_field_path()) {
-                Some(value) => field_spec.get_default().is_variant_equal(value),
-                None => true,
-            } {
+    pub fn is_conflicting(&self, index_schema: &IndexSchema) -> bool {
+        let index_schema_as_hashmap = index_schema.get_as_hashmap();
+        for field_spec in self.get_field_specs() {
+            if self.is_field_spec_conflicting(&field_spec, &index_schema_as_hashmap) {
                 return true;
             }
         }
@@ -89,12 +105,12 @@ impl IndexSchema {
 
     // ToDo: Decide if public or private
     /// Count the number of matched index fields in the query fields.
-    pub fn get_num_matched_fields(&self, query_fields: &HashSet<&FieldPath>) -> i32 {
-        let index_fields = self.get_fields();
+    pub fn get_num_matched_fields(&self, query_fields: &HashMap<&FieldPath, &Value>) -> i32 {
+        let index_fields = self.get_field_specs();
 
         let mut cur_matched = 0;
-        for field in index_fields {
-            if query_fields.contains(&field) {
+        for field_spec in index_fields {
+            if !self.is_field_spec_conflicting(&field_spec, query_fields) {
                 cur_matched += 1;
             }
         }
