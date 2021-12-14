@@ -211,12 +211,45 @@ impl Constraint {
                 value_ranges
             }
 
-            // Disjunction: Returns separate ranges
-            // Assumes non-overlapping ranges
+            // Disjunction: Returns disjoint ranges
             Constraint::Or(constraint1, constraint2) => {
                 let mut value_ranges = constraint1.generate_value_ranges();
                 value_ranges.append(&mut constraint2.generate_value_ranges());
-                value_ranges
+
+                // Remove overlapping ranges. Sort ranges by higher element,
+                // iterate through this and determine overlapping ranges.
+                value_ranges.sort_by(|vr1, vr2| match (vr1, vr2) {
+                    ((_, Bound::Included(higher1)), (_, Bound::Included(higher2))) => {
+                        higher1.cmp(higher2)
+                    }
+                    _ => panic!("non-inclusive bounds"),
+                });
+
+                // If any of the ranges from the left overlap any of the
+                // ranges from the right, then join them into a single range.
+                let mut value_ranges_nonoverlap = Vec::new();
+                let mut current_interval = value_ranges[0].clone();
+                for i in 1..value_ranges.len() {
+                    match (current_interval.clone(), value_ranges[i].clone()) {
+                        (
+                            (_, Bound::Included(higher1)),
+                            (Bound::Included(lower2), Bound::Included(higher2)),
+                        ) => {
+                            if lower2 <= higher1 {
+                                // Join intervals
+                                current_interval.1 = Bound::Included(higher2);
+                            } else {
+                                // Intervals split
+                                value_ranges_nonoverlap.push(current_interval);
+                                current_interval =
+                                    (Bound::Included(lower2), Bound::Included(higher2));
+                            }
+                        }
+                        _ => panic!("non-inclusive bounds"),
+                    }
+                }
+                value_ranges_nonoverlap.push(current_interval);
+                value_ranges_nonoverlap
             }
 
             _ => panic!("unsupported range type"),

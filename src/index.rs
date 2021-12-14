@@ -5,7 +5,7 @@ use crate::query::ConstraintDocument;
 use crate::query::FieldPath;
 use crate::value::Value;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::Bound;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -204,7 +204,7 @@ impl IndexSchema {
 }
 
 /// Store the values for the fields for a particular document.
-#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct Index {
     values: Vec<Value>,
 }
@@ -226,6 +226,21 @@ pub mod tests {
     use crate::query::Constraint;
     use std::collections::HashMap;
 
+    type IndexRange = (Bound<Index>, Bound<Index>);
+    fn are_ranges_equal_unordered(v1: &Vec<IndexRange>, v2: &Vec<IndexRange>) -> bool {
+        let hm1 = v1
+            .iter()
+            .map(|range| range.clone())
+            .collect::<HashSet<IndexRange>>();
+
+        let hm2 = v2
+            .iter()
+            .map(|range| range.clone())
+            .collect::<HashSet<IndexRange>>();
+
+        hm1 == hm2
+    }
+
     // Test IndexSchema::generate_btree_ranges() and IndexSchema::generate_combinations().
     #[test]
     fn test_generate_btree_ranges_simple() {
@@ -239,13 +254,13 @@ pub mod tests {
             Constraint::LessThan(Value::Int32(2)),
         )]);
 
-        assert!(
-            index_schema.generate_btree_ranges(constraint)
-                == vec![(
-                    Bound::Included(Index::new(vec![Value::Int32(0).get_min_value()])),
-                    Bound::Included(Index::new(vec![Value::Int32(2)]))
-                )]
-        );
+        assert!(are_ranges_equal_unordered(
+            &index_schema.generate_btree_ranges(constraint),
+            &vec![(
+                Bound::Included(Index::new(vec![Value::Int32(0).get_min_value()])),
+                Bound::Included(Index::new(vec![Value::Int32(2)]))
+            )]
+        ));
     }
 
     // Test generate_btree_ranges() on multi-field indices.
@@ -269,21 +284,21 @@ pub mod tests {
             ),
         ]);
 
-        assert!(
-            index_schema.generate_btree_ranges(constraint)
-                == vec![(
-                    Bound::Included(Index::new(vec![
-                        Value::Int32(0).get_min_value(),
-                        Value::Int32(5),
-                        Value::Int32(4)
-                    ])),
-                    Bound::Included(Index::new(vec![
-                        Value::Int32(2),
-                        Value::Int32(5),
-                        Value::Int32(0).get_max_value()
-                    ]))
-                )]
-        );
+        assert!(are_ranges_equal_unordered(
+            &index_schema.generate_btree_ranges(constraint),
+            &vec![(
+                Bound::Included(Index::new(vec![
+                    Value::Int32(0).get_min_value(),
+                    Value::Int32(5),
+                    Value::Int32(4)
+                ])),
+                Bound::Included(Index::new(vec![
+                    Value::Int32(2),
+                    Value::Int32(5),
+                    Value::Int32(0).get_max_value()
+                ]))
+            )]
+        ));
     }
 
     // Test conjunction btree range generation
@@ -302,13 +317,13 @@ pub mod tests {
             ),
         )]);
 
-        assert!(
-            index_schema.generate_btree_ranges(constraint)
-                == vec![(
-                    Bound::Included(Index::new(vec![Value::Int32(0)])),
-                    Bound::Included(Index::new(vec![Value::Int32(3)])),
-                )]
-        );
+        assert!(are_ranges_equal_unordered(
+            &index_schema.generate_btree_ranges(constraint),
+            &vec![(
+                Bound::Included(Index::new(vec![Value::Int32(0)])),
+                Bound::Included(Index::new(vec![Value::Int32(3)])),
+            )]
+        ));
     }
 
     // Test non-intersecting conjunction (empty set)
@@ -327,7 +342,10 @@ pub mod tests {
             ),
         )]);
 
-        assert!(index_schema.generate_btree_ranges(constraint) == vec![]);
+        assert!(are_ranges_equal_unordered(
+            &index_schema.generate_btree_ranges(constraint),
+            &vec![]
+        ));
     }
 
     // Test disjunction btree range generation
@@ -346,25 +364,25 @@ pub mod tests {
             ),
         )]);
 
-        assert!(
-            index_schema.generate_btree_ranges(constraint)
-                == vec![
-                    (
-                        Bound::Included(Index::new(vec![Value::Int32(3)])),
-                        Bound::Included(Index::new(vec![Value::Int32(0).get_max_value()])),
-                    ),
-                    (
-                        Bound::Included(Index::new(vec![Value::Int32(0).get_min_value()])),
-                        Bound::Included(Index::new(vec![Value::Int32(0)])),
-                    ),
-                ]
-        );
+        dbg!(&index_schema.generate_btree_ranges(constraint));
+
+        assert!(are_ranges_equal_unordered(
+            &index_schema.generate_btree_ranges(constraint),
+            &vec![
+                (
+                    Bound::Included(Index::new(vec![Value::Int32(3)])),
+                    Bound::Included(Index::new(vec![Value::Int32(0).get_max_value()])),
+                ),
+                (
+                    Bound::Included(Index::new(vec![Value::Int32(0).get_min_value()])),
+                    Bound::Included(Index::new(vec![Value::Int32(0)])),
+                ),
+            ]
+        ));
     }
 
     // Test combining overlapping ranges (i.e., double-counting)
-    // TODO: currently fails
     #[test]
-    #[should_panic]
     fn test_generate_btree_ranges_disj_overlap() {
         let index_schema = IndexSchema::new(vec![FieldSpec::new(
             vec![String::from("a")],
@@ -379,13 +397,13 @@ pub mod tests {
             ),
         )]);
 
-        assert!(
-            index_schema.generate_btree_ranges(constraint)
-                == vec![(
-                    Bound::Included(Index::new(vec![Value::Int32(0).get_min_value()])),
-                    Bound::Included(Index::new(vec![Value::Int32(0).get_max_value()])),
-                ),]
-        );
+        assert!(are_ranges_equal_unordered(
+            &index_schema.generate_btree_ranges(constraint),
+            &vec![(
+                Bound::Included(Index::new(vec![Value::Int32(0).get_min_value()])),
+                Bound::Included(Index::new(vec![Value::Int32(0).get_max_value()])),
+            )]
+        ));
     }
 
     // Test combining non-overlapping ranges into DNF.
@@ -407,19 +425,19 @@ pub mod tests {
             ),
         )]);
 
-        assert!(
-            index_schema.generate_btree_ranges(constraint)
-                == vec![
-                    (
-                        Bound::Included(Index::new(vec![Value::Int32(5)])),
-                        Bound::Included(Index::new(vec![Value::Int32(10)])),
-                    ),
-                    (
-                        Bound::Included(Index::new(vec![Value::Int32(0).get_min_value()])),
-                        Bound::Included(Index::new(vec![Value::Int32(0)])),
-                    ),
-                ]
-        );
+        assert!(are_ranges_equal_unordered(
+            &index_schema.generate_btree_ranges(constraint),
+            &vec![
+                (
+                    Bound::Included(Index::new(vec![Value::Int32(5)])),
+                    Bound::Included(Index::new(vec![Value::Int32(10)])),
+                ),
+                (
+                    Bound::Included(Index::new(vec![Value::Int32(0).get_min_value()])),
+                    Bound::Included(Index::new(vec![Value::Int32(0)])),
+                ),
+            ]
+        ));
     }
 
     // Test multi-index fields with disjoint ranges.
@@ -455,58 +473,58 @@ pub mod tests {
             ),
         ]);
 
-        assert!(
-            index_schema.generate_btree_ranges(constraint)
-                == vec![
-                    (
-                        Bound::Included(Index::new(vec![
-                            Value::Int32(0).get_min_value(),
-                            Value::Int32(5),
-                            Value::Int32(4),
-                        ])),
-                        Bound::Included(Index::new(vec![
-                            Value::Int32(2),
-                            Value::Int32(5),
-                            Value::Int32(9),
-                        ]))
-                    ),
-                    (
-                        Bound::Included(Index::new(vec![
-                            Value::Int32(0).get_min_value(),
-                            Value::Int32(0).get_min_value(),
-                            Value::Int32(4),
-                        ])),
-                        Bound::Included(Index::new(vec![
-                            Value::Int32(2),
-                            Value::Int32(3),
-                            Value::Int32(9),
-                        ]))
-                    ),
-                    (
-                        Bound::Included(Index::new(vec![
-                            Value::Int32(8),
-                            Value::Int32(5),
-                            Value::Int32(4),
-                        ])),
-                        Bound::Included(Index::new(vec![
-                            Value::Int32(0,).get_max_value(),
-                            Value::Int32(5,),
-                            Value::Int32(9,),
-                        ]))
-                    ),
-                    (
-                        Bound::Included(Index::new(vec![
-                            Value::Int32(8),
-                            Value::Int32(0).get_min_value(),
-                            Value::Int32(4),
-                        ])),
-                        Bound::Included(Index::new(vec![
-                            Value::Int32(0).get_max_value(),
-                            Value::Int32(3),
-                            Value::Int32(9),
-                        ]))
-                    )
-                ]
-        );
+        assert!(are_ranges_equal_unordered(
+            &index_schema.generate_btree_ranges(constraint),
+            &vec![
+                (
+                    Bound::Included(Index::new(vec![
+                        Value::Int32(0).get_min_value(),
+                        Value::Int32(5),
+                        Value::Int32(4),
+                    ])),
+                    Bound::Included(Index::new(vec![
+                        Value::Int32(2),
+                        Value::Int32(5),
+                        Value::Int32(9),
+                    ]))
+                ),
+                (
+                    Bound::Included(Index::new(vec![
+                        Value::Int32(0).get_min_value(),
+                        Value::Int32(0).get_min_value(),
+                        Value::Int32(4),
+                    ])),
+                    Bound::Included(Index::new(vec![
+                        Value::Int32(2),
+                        Value::Int32(3),
+                        Value::Int32(9),
+                    ]))
+                ),
+                (
+                    Bound::Included(Index::new(vec![
+                        Value::Int32(8),
+                        Value::Int32(5),
+                        Value::Int32(4),
+                    ])),
+                    Bound::Included(Index::new(vec![
+                        Value::Int32(0,).get_max_value(),
+                        Value::Int32(5,),
+                        Value::Int32(9,),
+                    ]))
+                ),
+                (
+                    Bound::Included(Index::new(vec![
+                        Value::Int32(8),
+                        Value::Int32(0).get_min_value(),
+                        Value::Int32(4),
+                    ])),
+                    Bound::Included(Index::new(vec![
+                        Value::Int32(0).get_max_value(),
+                        Value::Int32(3),
+                        Value::Int32(9),
+                    ]))
+                )
+            ]
+        ));
     }
 }

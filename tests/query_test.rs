@@ -82,6 +82,7 @@ pub mod tests {
     // Query for equality on single-index field.
     #[test]
     fn test_find_many_single_index() {
+        Collection::from(utils::DB_NAME).drop();
         let mut col = Collection::from(utils::DB_NAME);
 
         for doc in fixture() {
@@ -119,6 +120,7 @@ pub mod tests {
     // Query doesn't return default values on missing fields.
     #[test]
     fn test_find_many_no_return_default() {
+        Collection::from(utils::DB_NAME).drop();
         let mut col = Collection::from(utils::DB_NAME);
 
         for doc in fixture() {
@@ -156,15 +158,53 @@ pub mod tests {
     }
 
     // Query for inclusive inequality on single-index field.
-    // TODO
+    #[test]
+    fn test_find_many_inclusive() {
+        Collection::from(utils::DB_NAME).drop();
+        let mut col = Collection::from(utils::DB_NAME);
 
-    // Query for exclusive inequality on single-index field.
-    // TODO
+        for doc in fixture() {
+            col.get_mut_pool().write_new(doc);
+        }
+
+        col.declare_index(vec![FieldSpec::new(
+            vec![String::from("b")],
+            Value::Int32(3),
+        )]);
+
+        let query = Query {
+            constraints: HashMap::from([(
+                vec![String::from("b")],
+                Constraint::Or(
+                    Box::new(Constraint::LessThan(Value::Int32(4))),
+                    Box::new(Constraint::Equals(Value::Int32(4))),
+                ),
+            )]),
+            projection: HashMap::new(),
+            order: None,
+        };
+
+        let query_results = col.find_many(query);
+
+        let true_results = fixture()
+            .iter()
+            .filter(|doc| match doc.get(&vec![String::from("b")]) {
+                Some(value) => value <= Value::Int32(4),
+                None => false,
+            })
+            .map(|doc| doc.clone())
+            .collect::<Vec<Document>>();
+
+        dbg!(&query_results);
+        dbg!(&true_results);
+
+        assert!(are_doc_sets_equal(&query_results, &true_results));
+
+        col.drop();
+    }
 
     // Query works when there is no matching index.
     // TODO
 
     // ... multi fields
-
-    // ... multi-documents
 }
