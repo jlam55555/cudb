@@ -4,7 +4,7 @@ use crate::db::Collection;
 use crate::document::Document;
 use crate::index::{FieldSpec, IndexSchema};
 use crate::mmapv1::TopLevelDocument;
-use crate::query::{ConstraintDocument, ConstraintDocumentTrait, Query, UpdateDocument};
+use crate::query::{ConstraintDocument, ConstraintDocumentTrait, Query};
 
 use std::collections::HashMap;
 
@@ -67,6 +67,7 @@ impl Collection {
         // let remaining_constraints = query.constraints.remove_index_fields(&index_schema);
 
         // Fetch documents that match index
+        // TODO: both of these steps should use an iterator, if possible.
         let tldocs = if index_schema.get_fields().len() > 0 {
             // Index exists, get records that match Index
             let btree = self.get_indices().get(&index_schema).unwrap();
@@ -113,20 +114,11 @@ impl Collection {
     }
 
     /// Update at most one document that matches the query.
-    // TODO: Update document should actually update the fields.
-    pub fn update_one(&mut self, query: ConstraintDocument, update: Document) {
-        match self
-            .query(Query {
-                constraints: query,
-                projection: HashMap::new(),
-                order: None,
-            })
-            .next()
-        {
-            Some(tldoc) => {
-                let mut new_tldoc = tldoc;
-                *new_tldoc.get_mut_doc() = update.clone();
-                self.get_mut_pool().write(&mut new_tldoc);
+    pub fn update_one(&mut self, query: Query, update: Document) {
+        match self.query(query).next() {
+            Some(mut tldoc) => {
+                tldoc.get_mut_doc().update_from(&update);
+                self.get_mut_pool().write(&mut tldoc);
             }
             None => (),
         }
@@ -139,23 +131,15 @@ impl Collection {
             projection: HashMap::new(),
             order: None,
         })
-        .for_each(|tldoc| {
-            let mut new_tldoc = tldoc;
-            *new_tldoc.get_mut_doc() = update.clone();
-            self.get_mut_pool().write(&mut new_tldoc);
+        .for_each(|mut tldoc| {
+            tldoc.get_mut_doc().update_from(&update);
+            self.get_mut_pool().write(&mut tldoc);
         })
     }
 
     /// Delete at most one document that matches the query.
-    pub fn delete_one(&mut self, query: ConstraintDocument) {
-        match self
-            .query(Query {
-                constraints: query,
-                projection: HashMap::new(),
-                order: None,
-            })
-            .next()
-        {
+    pub fn delete_one(&mut self, query: Query) {
+        match self.query(query).next() {
             Some(tldoc) => self.get_mut_pool().delete(tldoc.get_block().clone()),
             None => (),
         }

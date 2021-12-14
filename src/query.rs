@@ -283,8 +283,3 @@ pub struct Query {
     // Ordering document (`ORDER BY`)
     pub order: Option<Vec<ResultOrder>>,
 }
-
-/// Document used in update operations.
-pub struct UpdateDocument {
-    // TODO
-}
