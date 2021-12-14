@@ -64,9 +64,9 @@ impl IndexSchema {
     /// Check if the Field Path is in the Index Schema and if it is, whether the
     /// default values have the same variant.
     ///
-    /// Return true if the Field Path is not in the Index Schema or if the default values have the
+    /// Return false if the Field Path is not in the Index Schema or if the default values have the
     /// same variant.
-    /// Return false if the default values do not have the same variant.
+    /// Return true if the default values do not have the same variant.
     fn is_field_spec_conflicting(
         &self,
         field_spec: &FieldSpec,
@@ -114,9 +114,13 @@ impl IndexSchema {
     pub fn get_num_matched_fields(&self, query_fields: &HashMap<&FieldPath, &Value>) -> i32 {
         let index_fields = self.get_field_specs();
 
+        // Check that each constraint doesn't conflict with the index fields
+        // and that each index field exists in the constraints
         let mut cur_matched = 0;
         for field_spec in index_fields {
-            if !self.is_field_spec_conflicting(&field_spec, query_fields) {
+            if !self.is_field_spec_conflicting(&field_spec, query_fields)
+                && query_fields.contains_key(field_spec.get_field_path())
+            {
                 cur_matched += 1;
             }
         }
@@ -364,8 +368,6 @@ pub mod tests {
                 Box::new(Constraint::LessThan(Value::Int32(0))),
             ),
         )]);
-
-        dbg!(&index_schema.generate_btree_ranges(constraint));
 
         assert!(are_ranges_equal_unordered(
             &index_schema.generate_btree_ranges(constraint),
