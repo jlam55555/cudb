@@ -249,14 +249,14 @@ pub mod tests {
 
         println!("TopLevelDocument 1: {:#?}", tldocs[1]);
         tldocs[1]
-            .get_doc()
+            .get_mut_doc()
             .insert("y".to_string(), Value::String("".to_string()));
         p.write(&mut tldocs[1]);
         println!("Smaller TopLevelDocument 1: {:#?}", tldocs[1]);
 
         println!("TopLevelDocument 2: {:#?}", tldocs[2]);
         tldocs[2]
-            .get_doc()
+            .get_mut_doc()
             .insert("y".to_string(), Value::String("a".repeat(1000)));
         p.write(&mut tldocs[2]);
         println!("Larger TopLevelDocument 2: {:#?}", tldocs[2]);

@@ -15,7 +15,8 @@ impl Collection {
         // Get the value type for each Constraint
         // If a Constraint does not have a value (e.g. is invalid), filter it out
         // Convert each Constraint into a Field Spec
-        let field_specs: Vec<FieldSpec> = constraints.iter()
+        let field_specs: Vec<FieldSpec> = constraints
+            .iter()
             .map(|x| (x.0, x.1.get_value_type()))
             .filter(|x| x.1.is_some())
             .map(|x| FieldSpec::new(x.0.clone(), x.1.unwrap()))
@@ -46,21 +47,11 @@ impl Collection {
             .for_each(|doc| self.insert_one(doc));
     }
 
-    /// Fetch at most one document matching the query.
-    pub fn find_one(&mut self, query: Query) -> Option<Document> {
-        let docs = self.find_many(query);
-        if docs.len() > 0 {
-            Some(docs[0].clone())
-        } else {
-            None
-        }
-    }
-
-    /// Fetch a vector of documents matching the query.
-    pub fn find_many(&self, query: Query) -> Vec<Document> {
+    // Query helper: transforms a query into a TopLevelDocument iterator.
+    fn query(&self, query: Query) -> impl std::iter::Iterator<Item = TopLevelDocument> {
         let constraint_schema = match self.check_constraints(&query.constraints) {
             Some(value) => value,
-            None => return Vec::new(),
+            None => panic!("invalid constraint"),
         };
 
         // Get best matching index schema, or an empty index schema otherwise
@@ -69,10 +60,10 @@ impl Collection {
             None => IndexSchema::new(vec![]),
         };
 
-        // Get remaining fields that are not part of the index
-        let remaining_constraints = query.constraints.remove_index_fields(&index_schema);
+        // TODO: remove
+        // // Get remaining fields that are not part of the index
+        // let remaining_constraints = query.constraints.remove_index_fields(&index_schema);
 
-        // TODO: implement default ID index
         // Fetch documents that match index
         let tldocs = if index_schema.get_fields().len() > 0 {
             // Index exists, get records that match Index
@@ -96,17 +87,28 @@ impl Collection {
             self.get_pool().scan()
         };
 
-        // Linearly scan docs and find first matching Document
-        // TODO: Return an iter instead
-        let mut docs = Vec::new();
-        for mut tldoc in tldocs {
-            if remaining_constraints.matches_document(&mut tldoc.get_doc()) {
-                docs.push(tldoc.get_doc().clone());
-            }
-        }
+        // Perform linear scan to match remaining constraints
+        tldocs
+            .into_iter()
+            .filter(move |tldoc| query.constraints.matches_document(tldoc.get_doc()))
+    }
 
-        // No match
-        docs
+    /// Fetch at most one document matching the query.
+    pub fn find_one(&mut self, query: Query) -> Option<Document> {
+        // Get first element of iter. Filter is a lazy stream operator so this
+        // should short-circuit and be efficient.
+        self.query(query)
+            .map(|tldoc| tldoc.get_doc().clone())
+            .next()
+    }
+
+    /// Fetch a vector of documents matching the query.
+    // TODO: Return iterator instead.
+    pub fn find_many(&self, query: Query) -> Vec<Document> {
+        // Linearly scan docs to find matching ones.
+        self.query(query)
+            .map(|tldoc| tldoc.get_doc().clone())
+            .collect()
     }
 
     /// Update at most one document that matches the query.
@@ -114,9 +116,6 @@ impl Collection {
 
     /// Update all documents matching the query.
     pub fn update_many(&self, _query: ConstraintDocument, _update: UpdateDocument) {}
-
-    /// Replace at most one document that matches the query.
-    pub fn replace_one(&self, _query: ConstraintDocument, _replace: Document) {}
 
     /// Delete at most one document that matches the query.
     pub fn delete_one(&self, _query: ConstraintDocument) {}

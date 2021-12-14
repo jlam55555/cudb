@@ -34,8 +34,13 @@ impl TopLevelDocument {
         &self.blk
     }
 
+    /// Getter for document.
+    pub fn get_doc(&self) -> &Document {
+        &self.doc
+    }
+
     /// Getter for document. The returned document reference is mutable.
-    pub fn get_doc(&mut self) -> &mut Document {
+    pub fn get_mut_doc(&mut self) -> &mut Document {
         &mut self.doc
     }
 
