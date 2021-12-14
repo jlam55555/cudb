@@ -101,10 +101,9 @@ impl Document {
                     }
                 },
                 // Scalar update
-                Value::Int32(_) | Value::String(_) | Value::Id(_) => {
+                Value::Int32(_) | Value::String(_) | Value::Id(_) | Value::Array(_) => {
                     doc.insert(update_key.clone(), update_val.clone());
                 }
-                _ => panic!("updating array type not supported"),
             }
         }
     }

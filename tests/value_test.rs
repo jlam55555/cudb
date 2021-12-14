@@ -84,6 +84,14 @@ pub mod tests {
         let mut subdoc = Document::new();
         subdoc.insert(String::from("d"), Value::Int32(4));
         doc.insert(String::from("c"), Value::Dict(subdoc));
+        doc.insert(
+            String::from("g"),
+            Value::Array(vec![
+                Value::String(String::from("Some")),
+                Value::String(String::from("text")),
+                Value::Int32(-24),
+            ]),
+        );
 
         let update_doc = Document::from(HashMap::from([
             (String::from("a"), Value::String(String::from("new value"))),
@@ -109,6 +117,14 @@ pub mod tests {
             doc == Document::from(HashMap::from([
                 (String::from("a"), Value::String(String::from("new value"))),
                 (String::from("b"), Value::String(String::from("world"))),
+                (
+                    String::from("g"),
+                    Value::Array(vec![
+                        Value::String(String::from("Some")),
+                        Value::String(String::from("text")),
+                        Value::Int32(-24),
+                    ]),
+                ),
                 (String::from("e"), Value::Int32(55)),
                 (
                     String::from("c"),
