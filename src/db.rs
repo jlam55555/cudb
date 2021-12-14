@@ -150,8 +150,6 @@ impl Collection {
     /// Drop collection.
     pub fn drop(self) {
         self.pool.drop();
-
-        // TODO: Drop index. Right now index isn't stored so no problem.
     }
 
     // TODO: make this private again
