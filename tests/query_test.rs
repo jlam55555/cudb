@@ -2,7 +2,7 @@
 
 use cudb::db::Collection;
 use cudb::document::Document;
-use cudb::index::{FieldSpec, IndexSchema};
+use cudb::index::FieldSpec;
 use cudb::query::{Constraint, Query};
 use cudb::value::Value;
 
@@ -41,23 +41,6 @@ fn fixture() -> Vec<Document> {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-
-    // Test IndexSchema::generate_btree_ranges() and IndexSchema::generate_combinations().
-    #[test]
-    fn test_generate_btree_ranges_simple() {
-        // TODO: test this against its true value
-        println!(
-            "{:#?}",
-            IndexSchema::new(vec![FieldSpec::new(
-                vec![String::from("a")],
-                Value::Int32(0)
-            )])
-            .generate_btree_ranges(&HashMap::from([(
-                vec![String::from("a")],
-                Constraint::LessThan(Value::Int32(2))
-            )]))
-        );
-    }
 
     // Generate B-tree ranges works correctly.
     // TODO

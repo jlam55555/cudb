@@ -183,3 +183,31 @@ impl Index {
         &self.values
     }
 }
+
+// This needs to be in this module since Index::new() is private
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    use crate::query::Constraint;
+    use std::collections::HashMap;
+
+    // Test IndexSchema::generate_btree_ranges() and IndexSchema::generate_combinations().
+    #[test]
+    fn test_generate_btree_ranges_simple() {
+        let index_schema_1 = IndexSchema::new(vec![FieldSpec::new(
+            vec![String::from("a")],
+            Value::Int32(0),
+        )]);
+        let constraint_1 = &HashMap::from([(
+            vec![String::from("a")],
+            Constraint::LessThan(Value::Int32(2)),
+        )]);
+        assert!(
+            index_schema_1.generate_btree_ranges(constraint_1)
+                == vec![(
+                    Bound::Included(Index::new(vec![Value::Int32(0).get_min_value()])),
+                    Bound::Included(Index::new(vec![Value::Int32(2)]))
+                )]
+        );
+    }
+}
