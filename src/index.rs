@@ -5,7 +5,7 @@ use crate::query::ConstraintDocument;
 use crate::query::FieldPath;
 use crate::value::Value;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::ops::Bound;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -223,7 +223,7 @@ impl Index {
 pub mod tests {
     use super::*;
     use crate::query::Constraint;
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
 
     type IndexRange = (Bound<Index>, Bound<Index>);
     fn are_ranges_equal_unordered(v1: &Vec<IndexRange>, v2: &Vec<IndexRange>) -> bool {

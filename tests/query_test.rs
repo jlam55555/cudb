@@ -17,6 +17,10 @@ fn fixture() -> Vec<Document> {
 
     docs[0].insert(String::from("a"), Value::Int32(0));
     docs[0].insert(String::from("b"), Value::Int32(5));
+    let mut subdoc = Document::new();
+    subdoc.insert(String::from("d"), Value::String(String::from("hello")));
+    subdoc.insert(String::from("e"), Value::String(String::from("world")));
+    docs[0].insert(String::from("c"), Value::Dict(subdoc));
 
     docs[1].insert(String::from("a"), Value::Int32(5));
     docs[1].insert(String::from("b"), Value::Int32(4));
@@ -26,6 +30,10 @@ fn fixture() -> Vec<Document> {
 
     docs[3].insert(String::from("a"), Value::Int32(-1));
     docs[3].insert(String::from("b"), Value::Int32(2));
+    let mut subdoc = Document::new();
+    subdoc.insert(String::from("d"), Value::String(String::from("jon")));
+    subdoc.insert(String::from("e"), Value::String(String::from("derek")));
+    docs[3].insert(String::from("c"), Value::Dict(subdoc));
 
     docs[4].insert(String::from("a"), Value::Int32(4));
     docs[4].insert(String::from("b"), Value::Int32(1));
@@ -34,6 +42,10 @@ fn fixture() -> Vec<Document> {
     docs[5].insert(String::from("b"), Value::Int32(0));
 
     docs[6].insert(String::from("a"), Value::Int32(4));
+    let mut subdoc = Document::new();
+    subdoc.insert(String::from("d"), Value::String(String::from("hello")));
+    subdoc.insert(String::from("e"), Value::String(String::from("derek")));
+    docs[6].insert(String::from("c"), Value::Dict(subdoc));
 
     docs[7].insert(String::from("a"), Value::Int32(4));
 
@@ -304,6 +316,44 @@ pub mod tests {
                     (_, None) | (None, _) => false,
                 }
             })
+            .map(|doc| doc.clone())
+            .collect::<Vec<Document>>();
+
+        assert!(are_doc_sets_equal(&query_results, &true_results));
+    }
+
+    // Test query with constraints on subdocument.
+    #[test]
+    fn test_find_many_subdoc() {
+        Collection::from(utils::DB_NAME).drop();
+
+        let mut col = Collection::from(utils::DB_NAME);
+        for doc in fixture() {
+            col.get_mut_pool().write_new(doc);
+        }
+        col.declare_index(vec![FieldSpec::new(
+            vec![String::from("c"), String::from("d")],
+            Value::String(String::from("")),
+        )]);
+        let query = Query {
+            constraints: HashMap::from([(
+                vec![String::from("c"), String::from("d")],
+                Constraint::Equals(Value::String(String::from("hello"))),
+            )]),
+            projection: HashMap::new(),
+            order: None,
+        };
+        let query_results = col.find_many(query);
+        col.drop();
+
+        let true_results = fixture()
+            .iter()
+            .filter(
+                |doc| match doc.get(&vec![String::from("c"), String::from("d")]) {
+                    Some(value) => value == Value::String(String::from("hello")),
+                    None => false,
+                },
+            )
             .map(|doc| doc.clone())
             .collect::<Vec<Document>>();
 
