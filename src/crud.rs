@@ -2,12 +2,33 @@
 
 use crate::db::Collection;
 use crate::document::Document;
-use crate::index::IndexSchema;
+use crate::index::{FieldSpec, IndexSchema};
 use crate::mmapv1::TopLevelDocument;
 use crate::query::{ConstraintDocument, ConstraintDocumentTrait, Query, UpdateDocument};
 
 // TODO: most of these should return Result<T,E> types
 impl Collection {
+    /// Check if a Constraint Document is valid.
+    /// If valid, return an Index Schema, where the default values represent the Value variant for that field.
+    /// Otherwise, return None.
+    fn check_constraints(&self, constraints: &ConstraintDocument) -> Option<IndexSchema> {
+        // Get the value type for each Constraint
+        // If a Constraint does not have a value (e.g. is invalid), filter it out
+        // Convert each Constraint into a Field Spec
+        let field_specs: Vec<FieldSpec> = constraints.iter()
+            .map(|x| (x.0, x.1.get_value_type()))
+            .filter(|x| x.1.is_some())
+            .map(|x| FieldSpec::new(x.0.clone(), x.1.unwrap()))
+            .collect();
+
+        // If a constraint was invalid, it will have been removed, so the lengths will be different
+        if field_specs.len() != constraints.len() {
+            return Option::None;
+        }
+
+        Option::from(IndexSchema::new(field_specs))
+    }
+
     // TODO: We need offset to insert but we want to check if insert is valid before offset
     //       Create a function to return the next free offset and change function argument back to Document
     /// Insert one document.
@@ -37,8 +58,13 @@ impl Collection {
 
     /// Fetch a vector of documents matching the query.
     pub fn find_many(&self, query: Query) -> Vec<Document> {
+        let constraint_schema = match self.check_constraints(&query.constraints) {
+            Some(value) => value,
+            None => return Vec::new(),
+        };
+
         // Get best matching index schema, or an empty index schema otherwise
-        let index_schema = match self.get_best_index_schema(&query.constraints) {
+        let index_schema = match self.get_best_index_schema(&constraint_schema) {
             Some(index_schema) => index_schema.clone(),
             None => IndexSchema::new(vec![]),
         };

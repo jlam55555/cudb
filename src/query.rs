@@ -101,8 +101,8 @@ pub enum Constraint {
 }
 
 impl Constraint {
-    /// Determines the type of a constraint. Returns None of the Constraint
-    /// is invalid due to mismatched subconstraints.
+    /// Determine the type of a constraint.
+    /// Return None if the Constraint is invalid due to mismatched subconstraints.
     pub fn get_value_type(&self) -> Option<Value> {
         match self {
             Self::Equals(value) | Self::LessThan(value) | Self::GreaterThan(value) => {
