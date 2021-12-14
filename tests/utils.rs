@@ -2,9 +2,11 @@ use cudb::document::Document;
 use cudb::value::Value;
 use uuid::Uuid;
 
+#[allow(dead_code)]
 pub static DB_NAME: &str = "unit_tests.db";
 
 // Helper function to generate sample documents.
+#[allow(dead_code)]
 pub fn sample_documents(n: u32) -> Vec<Document> {
     let mut docs = Vec::new();
 

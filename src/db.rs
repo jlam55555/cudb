@@ -1,11 +1,10 @@
 //! User-facing structural API of database.
 
 use crate::index::{FieldSpec, Index, IndexSchema};
+use crate::mmapv1::block::Offset;
 use crate::mmapv1::{block, Pool, TopLevelDocument};
-use crate::query::{ConstraintDocument};
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::path::Path;
-use crate::mmapv1::block::Offset;
 
 /// User API for connection/client-level actions.
 pub struct Client {}
@@ -43,9 +42,16 @@ impl Collection {
         let pool_path = Path::new(path);
         let p = Pool::new(&pool_path);
 
+        let indices_buf = &p.read_indices();
+
+        let indices = match bincode::deserialize(&indices_buf) {
+            Ok(val) => val,
+            Err(_) => HashMap::new(),
+        };
+
         Collection {
             pool: p,
-            indices: HashMap::new(),
+            indices: indices,
         }
     }
 
@@ -66,10 +72,18 @@ impl Collection {
     pub fn declare_index(&mut self, ind_names: Vec<FieldSpec>) {
         let index_schema = IndexSchema::new(ind_names);
 
+        // Check if this Index Schema will conflict with any existing Index Schemas
+        // If there is a conflict, stop without creating the new index
+        for existing_index_schema in self.indices.keys() {
+            if existing_index_schema.is_conflicting(&index_schema) {
+                return;
+            }
+        }
+
         // Loop through all the documents and insert them into the B-tree
         let mut b_tree = BTreeMap::new();
         for top_level_doc in self.pool.scan() {
-            let doc = top_level_doc.get_const_doc();
+            let doc = top_level_doc.get_doc();
             let index = match index_schema.create_index(doc) {
                 Some(value) => value,
                 None => panic!("mismatched type when creating index"),
@@ -83,8 +97,11 @@ impl Collection {
 
     /// Recursive helper function to create every Index for the Document and then insert each Index into the B-tree.
     /// If any Index is invalid, return without inserting any Index.
-    fn add_document_to_index(&mut self, mut index_schema_queue: VecDeque<&IndexSchema>,
-                             top_level_doc: &TopLevelDocument) -> bool {
+    fn add_document_to_index(
+        &mut self,
+        mut index_schema_queue: VecDeque<&IndexSchema>,
+        top_level_doc: &TopLevelDocument,
+    ) -> bool {
         if index_schema_queue.len() == 0 {
             return true;
         }
@@ -94,7 +111,7 @@ impl Collection {
 
         // Try to create an Index for the Document
         // If invalid, return false
-        let doc = top_level_doc.get_const_doc();
+        let doc = top_level_doc.get_doc();
         let index = match index_schema.create_index(doc) {
             Some(value) => value,
             None => return false,
@@ -123,26 +140,27 @@ impl Collection {
     }
 
     /// Close collection and underlying file pointers.
-    pub fn close(self) {
+    pub fn close(mut self) {
+        let indices_buf = bincode::serialize(&self.indices).unwrap();
+
+        self.pool.write_indices(&indices_buf);
         self.pool.close();
     }
 
     /// Drop collection.
     pub fn drop(self) {
         self.pool.drop();
-
-        // TODO: Drop index. Right now index isn't stored so no problem.
     }
 
     // TODO: make this private again
-    /// Get the index schema that most closely matches the provided constraints.
-    /// Only index schemas that fully match the constraints will be considered.
-    pub fn get_best_index_schema(&self, constraints: &ConstraintDocument) -> Option<&IndexSchema> {
-        let query_fields = constraints.keys().collect();
+    /// Get the Index Schema that most closely matches the provided Constraints.
+    /// Only Index Schemas that fully match the Constraints will be considered.
+    pub fn get_best_index_schema(&self, constraint_schema: &IndexSchema) -> Option<&IndexSchema> {
+        let query_fields = constraint_schema.get_as_hashmap();
 
-        // Get the number of matched fields for each index schema
-        // Keep index schemas if every field inside is in the constraints
-        // Get the first index schema with the max matches
+        // Get the number of matched fields for each Index Schema
+        // Keep Index Schemas if every field inside is in the Constraints
+        // Get the first Index Schema with the most matches
         let best_index_schema = self
             .indices
             .keys()
@@ -156,16 +174,16 @@ impl Collection {
 }
 
 /// Insert an Index with its corresponding Offset into a B-tree
-fn add_index_to_b_tree(b_tree: &mut BTreeMap<Index, HashSet<block::Offset>>,
-                       index: &Index, offset: Offset) {
+fn add_index_to_b_tree(
+    b_tree: &mut BTreeMap<Index, HashSet<block::Offset>>,
+    index: &Index,
+    offset: Offset,
+) {
     // ToDo: We can remove this if statement if we use a unique auto-generated id value
     //       for each document
     if !b_tree.contains_key(&index) {
         b_tree.insert(index.clone(), HashSet::new());
     }
 
-    b_tree
-        .get_mut(&index)
-        .unwrap()
-        .insert(offset);
+    b_tree.get_mut(&index).unwrap().insert(offset);
 }

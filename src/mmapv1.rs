@@ -34,13 +34,14 @@ impl TopLevelDocument {
         &self.blk
     }
 
-    /// Getter for document. The returned document reference is mutable.
-    pub fn get_doc(&mut self) -> &mut Document {
-        &mut self.doc
+    /// Getter for document.
+    pub fn get_doc(&self) -> &Document {
+        &self.doc
     }
 
-    pub fn get_const_doc(&self) -> &Document {
-        &self.doc
+    /// Getter for document. The returned document reference is mutable.
+    pub fn get_mut_doc(&mut self) -> &mut Document {
+        &mut self.doc
     }
 }
 
@@ -110,6 +111,7 @@ pub struct Pool {
     // free_blocks: Vec<Vec<block::Offset>>,
     top: block::Offset,
     file: File,
+    indices_file: File,
     path: PathBuf,
 }
 
@@ -117,19 +119,47 @@ impl Pool {
     /// Create a new memory pool from a file, creating the file if necessary.
     pub fn new(path: &Path) -> Pool {
         // Read file, panic if err
+        let mut path_buf = path.to_path_buf();
+        path_buf.set_extension("db");
         let file = OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
-            .open(path)
+            .open(path_buf.as_path())
+            .unwrap();
+
+        let mut ind_path_buf = path.to_path_buf();
+        ind_path_buf.set_extension("dbind");
+        let indices_file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(ind_path_buf.as_path())
             .unwrap();
 
         // TODO: implement free_blocks and better allocation scheme
         Pool {
             top: file.metadata().unwrap().len(),
             file: file,
-            path: PathBuf::from(&path),
+            indices_file: indices_file,
+            path: path_buf,
         }
+    }
+
+    pub fn read_indices(&self) -> Vec<u8> {
+        let buf_len = self.indices_file.metadata().unwrap().len();
+        let mut buf = vec![0u8; buf_len as usize];
+        self.indices_file.read_exact_at(&mut buf, 0).unwrap();
+        buf
+    }
+
+    /// Save indices to file.
+    pub fn write_indices(&mut self, indices_buf: &[u8]) {
+        // Write indices to file.
+        self.indices_file.write_all_at(indices_buf, 0).unwrap();
+
+        // Update file length to that of indices.
+        self.indices_file.set_len(indices_buf.len() as u64).unwrap();
     }
 
     /// Close pool (closes open file).
@@ -141,9 +171,13 @@ impl Pool {
     /// Delete pool (deletes file).
     pub fn drop(self) {
         let path = self.path.clone();
+        let mut indices_path = self.path.clone();
+        indices_path.set_extension("dbind");
+
         self.close();
 
         fs::remove_file(path).unwrap();
+        fs::remove_file(indices_path).unwrap();
     }
 
     /// Gets pool (file) size in bytes.
@@ -280,7 +314,7 @@ impl Pool {
     }
 
     /// Linearly scan and retrieve all documents from the pool.
-    // TODO: convert the result into a stream for efficiency
+    // TODO: convert the result into an iter for efficiency
     pub fn scan(&self) -> Vec<TopLevelDocument> {
         let mut cur_pos: block::Offset = 0;
         let mut tldocs = Vec::new();
@@ -294,6 +328,20 @@ impl Pool {
         }
 
         tldocs
+    }
+
+    // Returns a new block representing the next offset, for use in
+    // writing a new document.
+    pub fn get_next_offset(&self, doc: Document) -> TopLevelDocument {
+        TopLevelDocument {
+            blk: block::Block {
+                off: self.top,
+                len: 0,
+                cap: 0,
+                del: false,
+            },
+            doc: doc,
+        }
     }
 }
 

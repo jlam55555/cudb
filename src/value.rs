@@ -3,6 +3,7 @@
 use crate::document::Document;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
+use std::fmt;
 use std::hash::{Hash, Hasher};
 
 /// Variant type for (data) document values.
@@ -23,7 +24,7 @@ pub enum Value {
 impl Value {
     /// Check if the provided Value is the same variant as the current Value.
     /// A variant is a component of an enum.
-    /// 
+    ///
     /// Based on: <https://stackoverflow.com/a/32554326>
     pub fn is_variant_equal(&self, val: &Value) -> bool {
         std::mem::discriminant(self) == std::mem::discriminant(val)
@@ -87,6 +88,24 @@ impl Hash for Value {
             Self::String(str) => str.hash(state),
             Self::Array(arr) => arr.hash(state),
             _ => panic!("trying to hash a document"),
+        }
+    }
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Id(val) => val.fmt(f),
+            Self::Int32(val) => val.fmt(f),
+            Self::String(val) => val.fmt(f),
+            Self::Dict(subdoc) => subdoc.fmt(f),
+            Self::Array(arr) => {
+                write!(f, "[").unwrap();
+                for val in arr {
+                    write!(f, " {}", val).unwrap()
+                }
+                write!(f, " ]")
+            }
         }
     }
 }

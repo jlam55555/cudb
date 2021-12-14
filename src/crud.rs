@@ -2,45 +2,68 @@
 
 use crate::db::Collection;
 use crate::document::Document;
-use crate::index::IndexSchema;
+use crate::index::{FieldSpec, IndexSchema};
 use crate::mmapv1::TopLevelDocument;
-use crate::query::{ConstraintDocument, ConstraintDocumentTrait, Query, UpdateDocument};
+use crate::query::{ConstraintDocument, ConstraintDocumentTrait, Query};
+
+use std::collections::HashMap;
 
 // TODO: most of these should return Result<T,E> types
 impl Collection {
-    // TODO: We need offset to insert but we want to check if insert is valid before offset
-    //       Create a function to return the next free offset and change function argument back to Document
+    /// Check if a Constraint Document is valid.
+    /// If valid, return an Index Schema, where the default values represent the Value variant for that field.
+    /// Otherwise, return None.
+    fn check_constraints(&self, constraints: &ConstraintDocument) -> Option<IndexSchema> {
+        // Get the value type for each Constraint
+        // If a Constraint does not have a value (e.g. is invalid), filter it out
+        // Convert each Constraint into a Field Spec
+        let field_specs: Vec<FieldSpec> = constraints
+            .iter()
+            .map(|x| (x.0, x.1.get_value_type()))
+            .filter(|x| x.1.is_some())
+            .map(|x| FieldSpec::new(x.0.clone(), x.1.unwrap()))
+            .collect();
+
+        // If a constraint was invalid, it will have been removed, so the lengths will be different
+        if field_specs.len() != constraints.len() {
+            return Option::None;
+        }
+
+        Option::from(IndexSchema::new(field_specs))
+    }
+
     /// Insert one document.
-    pub fn insert_one(&mut self, top_level_doc: &TopLevelDocument) {
+    pub fn insert_one(&mut self, doc: Document) {
         // We try to insert the document to all of the indices first, before we actually write it
-        self.add_document_to_indices(top_level_doc);
-        self.get_mut_pool().write_new(top_level_doc.get_const_doc().clone());
+        let tldoc = self.get_pool().get_next_offset(doc);
+        self.add_document_to_indices(&tldoc);
+        self.get_mut_pool().write_new(tldoc.get_doc().clone());
     }
 
     /// Insert a vector of documents.
-    pub fn insert_many(&mut self, top_level_docs: Vec<&TopLevelDocument>) {
-        top_level_docs.into_iter()
-            .for_each(|doc| self.insert_one(doc));
+    pub fn insert_many(&mut self, docs: Vec<Document>) {
+        docs.into_iter().for_each(|doc| self.insert_one(doc));
     }
 
-    /// Fetch at most one document matching the query.
-    pub fn find_one(&mut self, query: Query) -> Option<Document> {
+    // Query helper: transforms a query into a TopLevelDocument iterator.
+    fn query(&self, query: Query) -> impl std::iter::Iterator<Item = TopLevelDocument> {
+        let constraint_schema = match self.check_constraints(&query.constraints) {
+            Some(value) => value,
+            None => panic!("invalid constraint"),
+        };
+
         // Get best matching index schema, or an empty index schema otherwise
-        let index_schema = match self.get_best_index_schema(&query.constraints) {
+        let index_schema = match self.get_best_index_schema(&constraint_schema) {
             Some(index_schema) => index_schema.clone(),
             None => IndexSchema::new(vec![]),
         };
 
-        // Get remaining fields that are not part of the index
-        let remaining_constraints = query.constraints.remove_index_fields(&index_schema);
-
         // TODO: remove
-        dbg!(&index_schema);
-        dbg!(&query.constraints);
-        dbg!(&remaining_constraints);
+        // // Get remaining fields that are not part of the index
+        // let remaining_constraints = query.constraints.remove_index_fields(&index_schema);
 
-        // TODO: implement default ID index
         // Fetch documents that match index
+        // TODO: both of these steps should use an iterator, if possible.
         let tldocs = if index_schema.get_fields().len() > 0 {
             // Index exists, get records that match Index
             let btree = self.get_indices().get(&index_schema).unwrap();
@@ -63,34 +86,77 @@ impl Collection {
             self.get_pool().scan()
         };
 
-        // Linearly scan docs and find first matching Document
-        for mut tldoc in tldocs {
-            if remaining_constraints.matches_document(&mut tldoc.get_doc()) {
-                return Some(tldoc.get_doc().clone());
-            }
-        }
+        // Perform linear scan to match remaining constraints
+        tldocs
+            .into_iter()
+            .filter(move |tldoc| query.constraints.matches_document(tldoc.get_doc()))
+    }
 
-        // No match
-        None
+    /// Fetch at most one document matching the query.
+    pub fn find_one(&mut self, query: Query) -> Option<Document> {
+        // Get first element of iter. Filter is a lazy stream operator so this
+        // should short-circuit and be efficient.
+        self.query(query)
+            .map(|tldoc| tldoc.get_doc().clone())
+            .next()
     }
 
     /// Fetch a vector of documents matching the query.
-    pub fn find_many(&self, _query: Query) -> Vec<Document> {
-        Vec::new()
+    pub fn find_many(&self, query: Query) -> Vec<Document> {
+        // Linearly scan docs to find matching ones.
+        self.query(query)
+            .map(|tldoc| tldoc.get_doc().clone())
+            .collect()
+    }
+
+    /// Fetch all documents from collection.
+    pub fn find_all(&self) -> Vec<Document> {
+        self.find_many(Query {
+            constraints: HashMap::new(),
+            projection: HashMap::new(),
+            order: None,
+        })
     }
 
     /// Update at most one document that matches the query.
-    pub fn update_one(&self, _query: ConstraintDocument, _update: UpdateDocument) {}
+    pub fn update_one(&mut self, query: Query, update: Document) {
+        match self.query(query).next() {
+            Some(mut tldoc) => {
+                tldoc.get_mut_doc().update_from(&update);
+                self.get_mut_pool().write(&mut tldoc);
+            }
+            None => (),
+        }
+    }
 
     /// Update all documents matching the query.
-    pub fn update_many(&self, _query: ConstraintDocument, _update: UpdateDocument) {}
-
-    /// Replace at most one document that matches the query.
-    pub fn replace_one(&self, _query: ConstraintDocument, _replace: Document) {}
+    pub fn update_many(&mut self, query: ConstraintDocument, update: Document) {
+        self.query(Query {
+            constraints: query,
+            projection: HashMap::new(),
+            order: None,
+        })
+        .for_each(|mut tldoc| {
+            tldoc.get_mut_doc().update_from(&update);
+            self.get_mut_pool().write(&mut tldoc);
+        })
+    }
 
     /// Delete at most one document that matches the query.
-    pub fn delete_one(&self, _query: ConstraintDocument) {}
+    pub fn delete_one(&mut self, query: Query) {
+        match self.query(query).next() {
+            Some(tldoc) => self.get_mut_pool().delete(tldoc.get_block().clone()),
+            None => (),
+        }
+    }
 
     /// Delete all documents that match the query.
-    pub fn delete_many(&self, _query: ConstraintDocument) {}
+    pub fn delete_many(&mut self, query: ConstraintDocument) {
+        self.query(Query {
+            constraints: query,
+            projection: HashMap::new(),
+            order: None,
+        })
+        .for_each(|tldoc| self.get_mut_pool().delete(tldoc.get_block().clone()));
+    }
 }

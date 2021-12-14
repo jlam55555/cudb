@@ -58,9 +58,6 @@ impl ConstraintDocumentTrait for ConstraintDocument {
     /// it automatically doesn't match the Constraint.
     fn matches_document(&self, doc: &Document) -> bool {
         for (path, constraint) in self.iter() {
-            // TODO: remove
-            dbg!(&path, &constraint);
-
             match doc.get(path) {
                 Some(value) => {
                     if !constraint.matches(&value) {
@@ -104,6 +101,37 @@ pub enum Constraint {
 }
 
 impl Constraint {
+    /// Determine the type of a constraint.
+    /// Return None if the Constraint is invalid due to mismatched subconstraints.
+    pub fn get_value_type(&self) -> Option<Value> {
+        match self {
+            Self::Equals(value) | Self::LessThan(value) | Self::GreaterThan(value) => {
+                Some(value.clone())
+            }
+            Self::Or(constraint1, constraint2) | Self::And(constraint1, constraint2) => {
+                match (constraint1.get_value_type(), constraint2.get_value_type()) {
+                    (None, _) | (_, None) => None,
+                    (Some(value1), Some(value2)) => {
+                        if value1.is_variant_equal(&value2) {
+                            Some(value1)
+                        } else {
+                            None
+                        }
+                    }
+                }
+            }
+            Self::In(values) => {
+                for i in 1..values.len() {
+                    if !values[i - 1].is_variant_equal(&values[i]) {
+                        return None;
+                    }
+                }
+                return Some(values[0].clone());
+            }
+            _ => panic!("currently unsupported constraint type"),
+        }
+    }
+
     /// Whether a Value matches a constraint.
     pub fn matches(&self, value: &Value) -> bool {
         match self {
@@ -191,12 +219,45 @@ impl Constraint {
                 value_ranges
             }
 
-            // Disjunction: Returns separate ranges
-            // Assumes non-overlapping ranges
+            // Disjunction: Returns disjoint ranges
             Constraint::Or(constraint1, constraint2) => {
                 let mut value_ranges = constraint1.generate_value_ranges();
                 value_ranges.append(&mut constraint2.generate_value_ranges());
-                value_ranges
+
+                // Remove overlapping ranges. Sort ranges by higher element,
+                // iterate through this and determine overlapping ranges.
+                value_ranges.sort_by(|vr1, vr2| match (vr1, vr2) {
+                    ((_, Bound::Included(higher1)), (_, Bound::Included(higher2))) => {
+                        higher1.cmp(higher2)
+                    }
+                    _ => panic!("non-inclusive bounds"),
+                });
+
+                // If any of the ranges from the left overlap any of the
+                // ranges from the right, then join them into a single range.
+                let mut value_ranges_nonoverlap = Vec::new();
+                let mut current_interval = value_ranges[0].clone();
+                for i in 1..value_ranges.len() {
+                    match (current_interval.clone(), value_ranges[i].clone()) {
+                        (
+                            (_, Bound::Included(higher1)),
+                            (Bound::Included(lower2), Bound::Included(higher2)),
+                        ) => {
+                            if lower2 <= higher1 {
+                                // Join intervals
+                                current_interval.1 = Bound::Included(higher2);
+                            } else {
+                                // Intervals split
+                                value_ranges_nonoverlap.push(current_interval);
+                                current_interval =
+                                    (Bound::Included(lower2), Bound::Included(higher2));
+                            }
+                        }
+                        _ => panic!("non-inclusive bounds"),
+                    }
+                }
+                value_ranges_nonoverlap.push(current_interval);
+                value_ranges_nonoverlap
             }
 
             _ => panic!("unsupported range type"),
@@ -229,9 +290,4 @@ pub struct Query {
 
     // Ordering document (`ORDER BY`)
     pub order: Option<Vec<ResultOrder>>,
-}
-
-/// Document used in update operations.
-pub struct UpdateDocument {
-    // TODO
 }

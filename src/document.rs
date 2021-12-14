@@ -4,6 +4,7 @@ use crate::query::FieldPath;
 use crate::value::Value;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 
 /// (Data) document (as opposed to query document, etc.)
 /// Note that `_id` is implemented as a regular field in the `elems`.
@@ -75,5 +76,54 @@ impl Document {
     /// Return whether the `_id` was updated.
     pub fn create_id(&mut self) -> bool {
         unimplemented!("create_id")
+    }
+
+    // Recursive helper for update_from()
+    fn update_from_hashmap(doc: &mut HashMap<String, Value>, update_doc: &HashMap<String, Value>) {
+        for (update_key, update_val) in update_doc.iter() {
+            match update_val {
+                // Subdocument update
+                Value::Dict(update_subdoc) => match doc.get_mut(update_key) {
+                    // Field name exists
+                    Some(subdoc) => match subdoc {
+                        // Existing subdocument, update
+                        Value::Dict(subdoc) => {
+                            Self::update_from_hashmap(&mut subdoc.elems, &update_subdoc.elems)
+                        }
+                        // Not a subdocument, insert update subdocument
+                        _ => {
+                            doc.insert(update_key.clone(), update_val.clone());
+                        }
+                    },
+                    // Field name doesn't exist, insert update subdocument
+                    None => {
+                        doc.insert(update_key.clone(), update_val.clone());
+                    }
+                },
+                // Scalar update
+                Value::Int32(_) | Value::String(_) | Value::Id(_) | Value::Array(_) => {
+                    doc.insert(update_key.clone(), update_val.clone());
+                }
+            }
+        }
+    }
+
+    /// Update a document with the fields present in another document.
+    // TODO: Cannot ever delete a field. Need new null Value?
+    pub fn update_from(&mut self, update_doc: &Document) {
+        // Loop through update document; for any scalar field present,
+        // create/overwrite the field in the original document.
+        // For a subdocument, recurse.
+        Self::update_from_hashmap(&mut self.elems, &update_doc.elems);
+    }
+}
+
+impl fmt::Display for Document {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{{").unwrap();
+        for (key, value) in self.elems.iter() {
+            write!(f, " '{}': {},", key, value).unwrap();
+        }
+        write!(f, " }}")
     }
 }
