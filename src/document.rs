@@ -4,6 +4,7 @@ use crate::query::FieldPath;
 use crate::value::Value;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 
 /// (Data) document (as opposed to query document, etc.)
 /// Note that `_id` is implemented as a regular field in the `elems`.
@@ -115,5 +116,15 @@ impl Document {
         // create/overwrite the field in the original document.
         // For a subdocument, recurse.
         Self::update_from_hashmap(&mut self.elems, &update_doc.elems);
+    }
+}
+
+impl fmt::Display for Document {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{{").unwrap();
+        for (key, value) in self.elems.iter() {
+            write!(f, " '{}': {},", key, value).unwrap();
+        }
+        write!(f, " }}")
     }
 }
