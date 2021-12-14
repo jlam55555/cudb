@@ -194,19 +194,59 @@ pub mod tests {
     // Test IndexSchema::generate_btree_ranges() and IndexSchema::generate_combinations().
     #[test]
     fn test_generate_btree_ranges_simple() {
-        let index_schema_1 = IndexSchema::new(vec![FieldSpec::new(
+        let index_schema = IndexSchema::new(vec![FieldSpec::new(
             vec![String::from("a")],
             Value::Int32(0),
         )]);
-        let constraint_1 = &HashMap::from([(
+
+        let constraint = &HashMap::from([(
             vec![String::from("a")],
             Constraint::LessThan(Value::Int32(2)),
         )]);
+
         assert!(
-            index_schema_1.generate_btree_ranges(constraint_1)
+            index_schema.generate_btree_ranges(constraint)
                 == vec![(
                     Bound::Included(Index::new(vec![Value::Int32(0).get_min_value()])),
                     Bound::Included(Index::new(vec![Value::Int32(2)]))
+                )]
+        );
+    }
+
+    // Test generate_btree_ranges() on multi-field indices.
+    #[test]
+    fn test_generate_btree_ranges_multi() {
+        let index_schema = IndexSchema::new(vec![
+            FieldSpec::new(vec![String::from("a")], Value::Int32(0)),
+            FieldSpec::new(vec![String::from("b")], Value::Int32(0)),
+            FieldSpec::new(vec![String::from("c")], Value::Int32(0)),
+        ]);
+
+        let constraint = &HashMap::from([
+            (
+                vec![String::from("a")],
+                Constraint::LessThan(Value::Int32(2)),
+            ),
+            (vec![String::from("b")], Constraint::Equals(Value::Int32(5))),
+            (
+                vec![String::from("c")],
+                Constraint::GreaterThan(Value::Int32(4)),
+            ),
+        ]);
+
+        assert!(
+            index_schema.generate_btree_ranges(constraint)
+                == vec![(
+                    Bound::Included(Index::new(vec![
+                        Value::Int32(0).get_min_value(),
+                        Value::Int32(5),
+                        Value::Int32(4)
+                    ])),
+                    Bound::Included(Index::new(vec![
+                        Value::Int32(2),
+                        Value::Int32(5),
+                        Value::Int32(0).get_max_value()
+                    ]))
                 )]
         );
     }
