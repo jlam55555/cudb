@@ -104,6 +104,29 @@ pub enum Constraint {
 }
 
 impl Constraint {
+    /// Determines the type of a constraint. Returns None of the Constraint
+    /// is invalid due to mismatched subconstraints.
+    pub fn get_value_type(&self) -> Option<Value> {
+        match self {
+            Self::Equals(value) | Self::LessThan(value) | Self::GreaterThan(value) => {
+                Some(value.clone())
+            }
+            Self::Or(constraint1, constraint2) | Self::And(constraint1, constraint2) => {
+                match (constraint1.get_value_type(), constraint2.get_value_type()) {
+                    (None, _) | (_, None) => None,
+                    (Some(value1), Some(value2)) => {
+                        if value1.is_variant_equal(&value2) {
+                            Some(value1)
+                        } else {
+                            None
+                        }
+                    }
+                }
+            }
+            _ => panic!("currently unsupported constraint type"),
+        }
+    }
+
     /// Whether a Value matches a constraint.
     pub fn matches(&self, value: &Value) -> bool {
         match self {
