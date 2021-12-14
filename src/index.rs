@@ -137,9 +137,6 @@ impl IndexSchema {
                     _ => panic!("invalid index range"),
                 });
 
-        dbg!(&next_combinations_indices);
-        dbg!(&next_combinations);
-
         let mut combinations = Vec::new();
         for (value_low, value_high) in &field_ranges[i] {
             // For now, assert these bounds are inclusive; they should always be inclusive
@@ -276,6 +273,25 @@ pub mod tests {
         );
     }
 
+    // Test non-intersecting conjunction (empty set)
+    #[test]
+    fn test_generate_btree_ranges_conj_empty() {
+        let index_schema = IndexSchema::new(vec![FieldSpec::new(
+            vec![String::from("a")],
+            Value::Int32(0),
+        )]);
+
+        let constraint = &HashMap::from([(
+            vec![String::from("a")],
+            Constraint::And(
+                Box::new(Constraint::GreaterThan(Value::Int32(3))),
+                Box::new(Constraint::LessThan(Value::Int32(0))),
+            ),
+        )]);
+
+        assert!(index_schema.generate_btree_ranges(constraint) == vec![]);
+    }
+
     // Test disjunction btree range generation
     #[test]
     fn test_generate_btree_ranges_disj() {
@@ -304,6 +320,32 @@ pub mod tests {
                         Bound::Included(Index::new(vec![Value::Int32(0)])),
                     ),
                 ]
+        );
+    }
+
+    // Test combining overlapping ranges (i.e., double-counting)
+    // TODO: currently fails
+    #[test]
+    fn test_generate_btree_ranges_disj_overlap() {
+        let index_schema = IndexSchema::new(vec![FieldSpec::new(
+            vec![String::from("a")],
+            Value::Int32(0),
+        )]);
+
+        let constraint = &HashMap::from([(
+            vec![String::from("a")],
+            Constraint::Or(
+                Box::new(Constraint::LessThan(Value::Int32(3))),
+                Box::new(Constraint::GreaterThan(Value::Int32(0))),
+            ),
+        )]);
+
+        assert!(
+            index_schema.generate_btree_ranges(constraint)
+                == vec![(
+                    Bound::Included(Index::new(vec![Value::Int32(0).get_min_value()])),
+                    Bound::Included(Index::new(vec![Value::Int32(0).get_max_value()])),
+                ),]
         );
     }
 }
