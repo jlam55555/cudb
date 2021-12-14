@@ -5,7 +5,7 @@ use crate::query::ConstraintDocument;
 use crate::query::FieldPath;
 use crate::value::Value;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::ops::Bound;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -50,6 +50,23 @@ impl IndexSchema {
 
     pub fn get_field_specs(&self) -> &Vec<FieldSpec> {
         &self.fields
+    }
+
+    /// Compare the current Index Schema with another Index Schema represented by a HashMap.
+    /// Check if any shared fields have conflicting Value variants (e.g. different types).
+    pub fn is_conflicting(&self, index_schema: &HashMap<&FieldPath, &Value>) -> bool {
+        for field_spec in &self.fields {
+            // Check if the other Index Schema shares the field and if it does, whether the
+            // default values have the same variant.
+            if !match index_schema.get(field_spec.get_field_path()) {
+                Some(value) => field_spec.get_default().is_variant_equal(value),
+                None => true,
+            } {
+                return true;
+            }
+        }
+
+        false
     }
 
     /// Create an Index from the provided Document.

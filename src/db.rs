@@ -64,6 +64,18 @@ impl Collection {
     /// Create a B-tree index on a list of fields in the collection.
     /// If a document doesn't have a field, will use the default value instead.
     pub fn declare_index(&mut self, ind_names: Vec<FieldSpec>) {
+        // Check if this Index Schema will conflict with any existing Index Schemas
+        let proposed_index_schema = ind_names.iter()
+            .map(|x| (x.get_field_path(), x.get_default()))
+            .collect();
+
+        // If there is a conflict, stop without creating the new index
+        for existing_index_schema in self.indices.keys() {
+            if existing_index_schema.is_conflicting(&proposed_index_schema) {
+                return;
+            }
+        }
+
         let index_schema = IndexSchema::new(ind_names);
 
         // Loop through all the documents and insert them into the B-tree
