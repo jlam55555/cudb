@@ -6,3 +6,7 @@ target/
 
 # IDEs
 .idea/
+
+# Database files
+*.db
+*.dbind
