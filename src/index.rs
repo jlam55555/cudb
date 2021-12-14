@@ -250,4 +250,29 @@ pub mod tests {
                 )]
         );
     }
+
+    // Test conjunction btree range generation
+    #[test]
+    fn test_generate_btree_ranges_conj() {
+        let index_schema = IndexSchema::new(vec![FieldSpec::new(
+            vec![String::from("a")],
+            Value::Int32(0),
+        )]);
+
+        let constraint = &HashMap::from([(
+            vec![String::from("a")],
+            Constraint::And(
+                Box::new(Constraint::GreaterThan(Value::Int32(-0))),
+                Box::new(Constraint::LessThan(Value::Int32(3))),
+            ),
+        )]);
+
+        assert!(
+            index_schema.generate_btree_ranges(constraint)
+                == vec![(
+                    Bound::Included(Index::new(vec![Value::Int32(0)])),
+                    Bound::Included(Index::new(vec![Value::Int32(3)])),
+                )]
+        );
+    }
 }
