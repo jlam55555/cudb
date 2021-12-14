@@ -10,19 +10,15 @@ ECE464 Final project by Jonathan Lam, Derek Lee, Victor Zhang
 
 ---
 
-### Examples
-TODO
-
----
-
 ### Build instructions
 `cargo` is required to build this project.
 
 ```bash
-$ cargo build                                 # build project
-$ cargo test -- --nocapture --test-threads=1  # run unit tests
-$ cargo doc --no-deps                         # build documentation
-$ cargo clean                                 # delete build artifacts
+$ cargo build                     # build library in src/
+$ cargo run --example [EXAMPLE]   # run example examples/
+$ cargo test -- --test-threads=1  # run unit tests in tests/
+$ cargo doc --no-deps             # build documentation
+$ cargo clean                     # delete build artifacts
 ```
 
 ##### Open documentation in browser
@@ -35,6 +31,12 @@ $ cargo doc --no-deps --open
 $ ./build_docs.sh
 ```
 
+##### Run example
+See the [examples/][./examples/] directory. For example:
+```bash
+$ cargo run --example index_perf
+```
+
 ##### Test config
 ```bash
 $ cargo test -- --nocapture --test-threads=1
@@ -45,16 +47,10 @@ $ cargo test -- --nocapture --test-threads=1
   
 To run a single test:
 ```bash
-$ cargo test [TEST_FN_NAME] -- --nocapture
+$ cargo test [TEST_FN_NAME] -- --nocapture --test-threads=1
 ```
 where `[TEST_FN_NAME]` is one of the tests defined in the `tests/` directory, e.g.,
 `test_pool_fetch`.
-
-##### Build without unused warnings
-```bash
-$ RUSTFLAGS="$RUSTFLAGS -A unused_variables -A dead_code" cargo build
-```
-These flags can be used for the `run` and `test` targets as well.
 
 [docs]: https://jlam55555.github.io/cudb/
 [report]: http://files.lambdalambda.ninja/reports/21-22_fall/ece464_report_cudb.lam_lee_zhang.pdf
