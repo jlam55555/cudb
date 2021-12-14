@@ -6,7 +6,7 @@ use cudb::index::FieldSpec;
 use cudb::query::{Constraint, Query};
 use cudb::value::Value;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[path = "./utils.rs"]
 mod utils;
@@ -38,6 +38,31 @@ fn fixture() -> Vec<Document> {
     docs
 }
 
+// Predicate to check if two vectors of documents are equal.
+// Note that documents are unhashable, so can't use a set.
+fn are_doc_sets_equal(v1: Vec<Document>, v2: Vec<Document>) -> bool {
+    assert!(v1.len() == v2.len());
+
+    // Keep track of seen indices
+    let mut seen = HashSet::new();
+
+    for d1 in v1 {
+        let mut found = false;
+        for (i, d2) in v2.iter().enumerate() {
+            if d1 == d2.clone() && !seen.contains(&i) {
+                seen.insert(i);
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            return false;
+        }
+    }
+
+    true
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -63,8 +88,6 @@ pub mod tests {
             Value::Int32(-12345),
         )]);
 
-        println!("Indices: {:#?}", col.get_indices());
-
         // Create query
         let query = Query {
             constraints: HashMap::from([(
@@ -75,8 +98,15 @@ pub mod tests {
             order: None,
         };
 
-        // TODO: query; working here
-        println!("{:#?}", col.find_many(query));
+        let query_results = col.find_many(query);
+
+        let true_results = fixture()
+            .iter()
+            .filter(|doc| doc.get(&vec![String::from("a")]).unwrap() < Value::Int32(2))
+            .map(|doc| doc.clone())
+            .collect::<Vec<Document>>();
+
+        assert!(are_doc_sets_equal(query_results, true_results));
 
         col.drop();
     }

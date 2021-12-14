@@ -58,9 +58,6 @@ impl ConstraintDocumentTrait for ConstraintDocument {
     /// it automatically doesn't match the Constraint.
     fn matches_document(&self, doc: &Document) -> bool {
         for (path, constraint) in self.iter() {
-            // TODO: remove
-            dbg!(&path, &constraint);
-
             match doc.get(path) {
                 Some(value) => {
                     if !constraint.matches(&value) {

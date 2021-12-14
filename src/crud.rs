@@ -46,23 +46,14 @@ impl Collection {
         // Get remaining fields that are not part of the index
         let remaining_constraints = query.constraints.remove_index_fields(&index_schema);
 
-        // TODO: remove
-        dbg!(&index_schema);
-        dbg!(&query.constraints);
-        dbg!(&remaining_constraints);
-
         // TODO: implement default ID index
         // Fetch documents that match index
         let tldocs = if index_schema.get_fields().len() > 0 {
-            dbg!("Using index");
-
             // Index exists, get records that match Index
             let btree = self.get_indices().get(&index_schema).unwrap();
 
             // Convert Index to b-tree ranges
             let btree_ranges = index_schema.generate_btree_ranges(&query.constraints);
-
-            dbg!(&btree_ranges);
 
             // Join all ranges
             let mut tldocs = Vec::new();
@@ -75,13 +66,9 @@ impl Collection {
             }
             tldocs
         } else {
-            dbg!("No matching index");
-
             // No matching index, get all records
             self.get_pool().scan()
         };
-
-        dbg!(&tldocs);
 
         // Linearly scan docs and find first matching Document
         // TODO: Return an iter instead
