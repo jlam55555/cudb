@@ -1,10 +1,10 @@
 //! User-facing structural API of database.
 
 use crate::index::{FieldSpec, Index, IndexSchema};
+use crate::mmapv1::block::Offset;
 use crate::mmapv1::{block, Pool, TopLevelDocument};
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::path::Path;
-use crate::mmapv1::block::Offset;
 
 /// User API for connection/client-level actions.
 pub struct Client {}
@@ -42,9 +42,11 @@ impl Collection {
         let pool_path = Path::new(path);
         let p = Pool::new(&pool_path);
 
+        let indices_buf = &p.read_indices();
+
         Collection {
             pool: p,
-            indices: HashMap::new(),
+            indices: bincode::deserialize(&indices_buf).unwrap(),
         }
     }
 
@@ -90,8 +92,11 @@ impl Collection {
 
     /// Recursive helper function to create every Index for the Document and then insert each Index into the B-tree.
     /// If any Index is invalid, return without inserting any Index.
-    fn add_document_to_index(&mut self, mut index_schema_queue: VecDeque<&IndexSchema>,
-                             top_level_doc: &TopLevelDocument) -> bool {
+    fn add_document_to_index(
+        &mut self,
+        mut index_schema_queue: VecDeque<&IndexSchema>,
+        top_level_doc: &TopLevelDocument,
+    ) -> bool {
         if index_schema_queue.len() == 0 {
             return true;
         }
@@ -130,7 +135,10 @@ impl Collection {
     }
 
     /// Close collection and underlying file pointers.
-    pub fn close(self) {
+    pub fn close(mut self) {
+        let indices_buf = bincode::serialize(&self.indices).unwrap();
+
+        self.pool.write_indices(&indices_buf);
         self.pool.close();
     }
 
@@ -163,16 +171,16 @@ impl Collection {
 }
 
 /// Insert an Index with its corresponding Offset into a B-tree
-fn add_index_to_b_tree(b_tree: &mut BTreeMap<Index, HashSet<block::Offset>>,
-                       index: &Index, offset: Offset) {
+fn add_index_to_b_tree(
+    b_tree: &mut BTreeMap<Index, HashSet<block::Offset>>,
+    index: &Index,
+    offset: Offset,
+) {
     // ToDo: We can remove this if statement if we use a unique auto-generated id value
     //       for each document
     if !b_tree.contains_key(&index) {
         b_tree.insert(index.clone(), HashSet::new());
     }
 
-    b_tree
-        .get_mut(&index)
-        .unwrap()
-        .insert(offset);
+    b_tree.get_mut(&index).unwrap().insert(offset);
 }

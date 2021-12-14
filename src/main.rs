@@ -95,4 +95,6 @@ fn main() {
 
     // create_index(&mut col);
     // query_lt_100(&col);
+
+    col.close();
 }

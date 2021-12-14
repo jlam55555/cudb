@@ -111,6 +111,7 @@ pub struct Pool {
     // free_blocks: Vec<Vec<block::Offset>>,
     top: block::Offset,
     file: File,
+    indices_file: File,
     path: PathBuf,
 }
 
@@ -118,19 +119,47 @@ impl Pool {
     /// Create a new memory pool from a file, creating the file if necessary.
     pub fn new(path: &Path) -> Pool {
         // Read file, panic if err
+        let mut path_buf = path.to_path_buf();
+        path_buf.set_extension("db");
         let file = OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
-            .open(path)
+            .open(path_buf.as_path())
+            .unwrap();
+
+        let mut ind_path_buf = path.to_path_buf();
+        ind_path_buf.set_extension("db_ind");
+        let indices_file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(ind_path_buf.as_path())
             .unwrap();
 
         // TODO: implement free_blocks and better allocation scheme
         Pool {
             top: file.metadata().unwrap().len(),
             file: file,
+            indices_file: indices_file,
             path: PathBuf::from(&path),
         }
+    }
+
+    pub fn read_indices(&self) -> Vec<u8> {
+        let buf_len = self.indices_file.metadata().unwrap().len();
+        let mut buf = vec![0u8; buf_len as usize];
+        self.indices_file.read_exact_at(&mut buf, 0).unwrap();
+        buf
+    }
+
+    /// Save indices to file.
+    pub fn write_indices(&mut self, indices_buf: &[u8]) {
+        // Write indices to file.
+        self.indices_file.write_all_at(indices_buf, 0).unwrap();
+
+        // Update file length to that of indices.
+        self.indices_file.set_len(indices_buf.len() as u64).unwrap();
     }
 
     /// Close pool (closes open file).

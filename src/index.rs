@@ -5,10 +5,12 @@ use crate::query::ConstraintDocument;
 use crate::query::FieldPath;
 use crate::value::Value;
 
+use serde::{Deserialize, Serialize};
+
 use std::collections::HashMap;
 use std::ops::Bound;
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
 pub struct FieldSpec {
     field_path: FieldPath,
     default: Value,
@@ -33,7 +35,7 @@ impl FieldSpec {
 }
 
 /// Store the fields used for an Index.
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
 pub struct IndexSchema {
     fields: Vec<FieldSpec>,
 }
@@ -203,7 +205,7 @@ impl IndexSchema {
 }
 
 /// Store the values for the fields for a particular document.
-#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Index {
     values: Vec<Value>,
 }
