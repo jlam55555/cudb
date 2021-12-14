@@ -118,7 +118,7 @@ impl IndexSchema {
         cur_matched
     }
 
-    /// Calculates the non-overlapping b-tree query ranges for a ConstraintDocument.
+    /// Calculate the non-overlapping b-tree query ranges for a ConstraintDocument.
     pub fn generate_btree_ranges(
         &self,
         constraints: &ConstraintDocument,
