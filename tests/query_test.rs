@@ -195,16 +195,61 @@ pub mod tests {
             .map(|doc| doc.clone())
             .collect::<Vec<Document>>();
 
-        dbg!(&query_results);
-        dbg!(&true_results);
-
         assert!(are_doc_sets_equal(&query_results, &true_results));
 
         col.drop();
     }
 
     // Query works when there is no matching index.
-    // TODO
+    #[test]
+    fn test_find_many_scan() {
+        // Perform the same as the above, and check that the results match.
+        Collection::from(utils::DB_NAME).drop();
+
+        // Query with index
+        let mut col = Collection::from(utils::DB_NAME);
+        for doc in fixture() {
+            col.get_mut_pool().write_new(doc);
+        }
+        col.declare_index(vec![FieldSpec::new(
+            vec![String::from("b")],
+            Value::Int32(3),
+        )]);
+        let query = Query {
+            constraints: HashMap::from([(
+                vec![String::from("b")],
+                Constraint::Or(
+                    Box::new(Constraint::LessThan(Value::Int32(4))),
+                    Box::new(Constraint::Equals(Value::Int32(4))),
+                ),
+            )]),
+            projection: HashMap::new(),
+            order: None,
+        };
+        let query1_results = col.find_many(query);
+        col.drop();
+
+        // Query without index
+        let mut col = Collection::from(utils::DB_NAME);
+        for doc in fixture() {
+            col.get_mut_pool().write_new(doc);
+        }
+        let query = Query {
+            constraints: HashMap::from([(
+                vec![String::from("b")],
+                Constraint::Or(
+                    Box::new(Constraint::LessThan(Value::Int32(4))),
+                    Box::new(Constraint::Equals(Value::Int32(4))),
+                ),
+            )]),
+            projection: HashMap::new(),
+            order: None,
+        };
+        let query2_results = col.find_many(query);
+        col.drop();
+
+        assert!(are_doc_sets_equal(&query1_results, &query2_results));
+    }
 
     // ... multi fields
 }
